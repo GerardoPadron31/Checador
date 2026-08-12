@@ -1,242 +1,116 @@
-# Checador — Control de Asistencia con Reconocimiento Facial
+# Checador — Control de Asistencia por Reconocimiento Facial
 
-Aplicación móvil completa (Frontend + Backend) para el control de asistencia de personal.
-El mecanismo principal de autenticación es el **reconocimiento facial mediante inteligencia artificial**
-usando la librería [`deepface`](https://github.com/serengil/deepface).
+Un checador de asistencia completo para empresas o escuelas: los empleados **marcan su entrada y salida con la cámara del celular**, sin tarjetas ni contraseñas. El sistema reconoce el rostro de cada persona y registra el movimiento automáticamente.
 
-## Stack Tecnológico
+## ¿Cómo funciona?
 
-| Capa      | Tecnología                                                    |
-|-----------|---------------------------------------------------------------|
-| Backend   | Python + FastAPI + SQLAlchemy                                 |
-| IA/Biometría | `deepface` (modelo Facenet) con OpenCV                    |
-| Frontend  | React Native + Expo + NativeWind (Tailwind) + expo-router     |
-| Base de datos | SQLite (relacional, lista para cambiar a PostgreSQL)      |
-| Autenticación | JWT (python-jose + passlib/bcrypt)                       |
+1. Una persona se **registra** por primera vez tomándose una foto de su rostro.
+2. Cuando llega a la empresa, abre la app, presiona **Tomar asistencia** y se pone frente a la cámara.
+3. El backend compara su rostro con los rostros guardados; si coincide, registra la **entrada**. Al final del día repite el paso y registra la **salida**.
+4. Todo queda guardado en la base de datos y puede consultarse desde el **historial** (por persona, por área o por período).
 
-## Estructura del Repositorio
+Además de la asistencia, la app permite gestionar **horarios** y **permisos/vacaciones**. Los administradores pueden dar de alta usuarios, asignar roles y revisar los registros de todo el personal.
+
+## Tecnologías utilizadas
+
+| Parte | Tecnología |
+|---|---|
+| Aplicación móvil | React Native con Expo, TypeScript, NativeWind (Tailwind) y expo-router |
+| Servidor (API) | Python con FastAPI y SQLAlchemy |
+| Reconocimiento facial | `deepface` (modelo Facenet) + OpenCV |
+| Base de datos | SQLite (fácil de cambiar a PostgreSQL) |
+| Sesiones | JWT (python-jose + passlib/bcrypt) |
+
+## Estructura del proyecto
 
 ```
-.
-├── Backend/
-│   ├── app/
-│   │   ├── main.py            # Configuración de FastAPI, CORS y panel web
-│   │   ├── models.py          # Modelos SQLAlchemy (User, Attendance, Schedule, Vacation)
-│   │   ├── schemas.py         # Esquemas Pydantic
-│   │   ├── auth.py            # JWT, hashing y dependencias de permisos
-│   │   ├── database.py        # Conexión y sesión de la BD
-│   │   ├── face_utils.py      # Guardado de rostros y reconocimiento con deepface
-│   │   ├── config.py          # Variables de entorno
-│   │   └── routes/
-│   │       ├── users.py       # CRUD de usuarios + rostro
-│   │       ├── attendance.py  # Toma de asistencia y consulta de historiales
-│   │       ├── schedules.py   # CRUD de horarios
-│   │       └── vacations.py   # CRUD de permisos/vacaciones
-│   ├── static/panel/index.html  # Panel de Control web (vistas + botones)
-│   ├── seed_db.py             # Poblado inicial (usa dataset local de rostros)
-│   ├── requirements.txt
-│   └── .env.example
-└── Frontend/
-    └── my-expo-app/
-        ├── app/
-        │   ├── (auth)/        # login y registro
-        │   └── (tabs)/        # attendance, users, history, schedules, vacations, profile
-        ├── components/        # Componentes reutilizables (captura facial)
-        ├── services/api.ts    # Cliente Axios (cambia aquí la IP del backend)
-        └── store/             # Zustand (sesión y autenticación)
+Proyecto_Checador/
+├── Backend/            # API en Python (FastAPI) + Panel web de control
+├── Frontend/
+│   └── my-expo-app/    # App móvil (Expo / React Native)
+├── Dataset/            # Fotos de rostro de cada persona (carpeta por persona)
+└── AGENTS.md           # Notas para agentes de IA que trabajen en este repo
 ```
 
-## 1. Ejecutar el Backend
+## Cómo ejecutarlo
 
-Requisitos: Python 3.10+.
+### 1) Backend
+
+Requisitos: Python 3.10 o superior.
 
 ```bash
 cd Backend
-
-# Crear y activar el entorno virtual
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # Linux/macOS
-
-# Instalar dependencias
+venv\Scripts\activate        # en Windows
+# source venv/bin/activate   # en Linux/macOS
 pip install -r requirements.txt
-
-# Configurar variables de entorno
-copy .env.example .env         # Windows
-# cp .env.example .env         # Linux/macOS
+copy .env.example .env       # en Windows
+# cp .env.example .env       # en Linux/macOS
 ```
 
-> La primera vez que arranca, `deepface` descarga los pesos del modelo **Facenet**
-> (~100 MB) a `~/.deepface`. Requiere conexión a internet en ese momento.
-
-> Al arrancar, el backend **indexa las fotos del `Dataset/`** en segundo plano
-> (~1-2 min la primera vez). Hasta que termina, el primer reconocimiento puede
-> tardar; después es casi instantáneo.
-
-Arrancar el servidor:
+Arranca el servidor:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Al abrir `http://localhost:8000/` verás el **Panel de Control** web con una vista
-por módulo (Usuarios, Asistencia, Horarios, Vacaciones) donde cada acción se ejecuta
-con un botón. También sigue disponible la documentación interactiva de la API
-(Swagger) en `http://localhost:8000/docs`.
+> La primera vez, `deepface` descarga los pesos del modelo Facenet (~100 MB) y el
+> backend indexa las fotos del `Dataset/`. Ese arranque inicial tarda unos minutos;
+> después es casi instantáneo.
 
-### Flujo de reconocimiento facial
+Con el servidor arriba puedes ver:
+- El **panel de control** web en `http://localhost:8000/`
+- La **documentación de la API** (Swagger) en `http://localhost:8000/docs`
 
-1. **Registrar** (`Usuarios → Registrar usuario`): captura **varias fotos del rostro**
-   desde distintos ángulos (botón 📷). Se guardan en `Dataset/<Nombre>/img_*.jpg`
-   y las rutas quedan registradas en la base de datos.
-2. **Iniciar sesión con rostro** (`Inicio → Iniciar con rostro`): la cámara captura
-   el rostro, el backend lo compara contra todas las fotos del `Dataset/`, emite el
-   JWT y **registra la asistencia automáticamente** (entrada/salida alternada).
-3. También puedes **tomar asistencia** directamente (`Asistencia → Tomar asistencia`).
+### 2) App móvil (frontend)
 
-### Usar el panel desde el celular (con cámara)
-
-Los navegadores móviles solo permiten usar la **cámara** en páginas con **HTTPS**.
-El script `run_phone.ps1` genera un certificado local y levanta el backend seguro:
-
-```powershell
-cd Backend
-.\run_phone.ps1          # HTTPS en el puerto 8443 (el HTTP sigue en :8000)
-```
-
-Luego, en el celular (misma red Wi-Fi), abre la URL que indica el script
-(ej. `https://192.168.0.15:8443`) y **acepta la advertencia de seguridad**
-(Configuración avanzada → Continuar). Así podrás **tomar la asistencia con la
-cámara**: en *Asistencia → Tomar asistencia* presiona el botón 📷, captura el
-rostro dentro del marco y listo; el registro se guarda en la base de datos.
-
-### Usuario administrador
-
-Sin base de datos poblada, crea el admin con el script de seed:
-
-```bash
-python seed_db.py
-```
-
-Crea el usuario `admin@checador.com` / `admin123` (rol `admin`) y, si configuras la
-ruta `DATASET_PATH` apuntando a una carpeta con fotos por persona, registra usuarios
-con su imagen de rostro. También puedes crear usuarios desde la app (módulo Usuarios).
-
-## 2. Ejecutar el Frontend (App Móvil)
-
-Requisitos: Node.js 18+ y el teléfono físico con la app **Expo Go** (o un emulador).
+Requisitos: Node.js 18+ y el teléfono con la app **Expo Go** (o un emulador).
 
 ```bash
 cd Frontend/my-expo-app
 npm install
 ```
 
-**Importante:** en `Frontend/my-expo-app/services/api.ts` cambia la URL por la IP de
-tu computadora en la red local (debe estar en la misma red que el teléfono):
+**Importante:** el teléfono y la computadora deben estar en la **misma red Wi-Fi**.
+En `Frontend/my-expo-app/services/api.ts` cambia la IP por la de tu computadora:
 
 ```ts
-const API_URL = 'http://TU_IP_LOCAL:8000';
+const API_URL = 'http://IP_DE_TU_COMPUTADORA:8000';
 ```
 
-Iniciar Expo:
+Para conocer tu IP en Windows: `ipconfig` (búscala en la conexión "Wi-Fi", ej. `192.168.0.15`).
+
+Ahora inicia Expo:
 
 ```bash
 npx expo start
 ```
 
-Escanea el código QR con Expo Go (Android) o la cámara del iPhone. También puedes usar:
+Escanea el **código QR** con Expo Go (Android) o con la cámara del iPhone, y la app abrirá en tu teléfono.
 
-```bash
-npx expo start --android   # con emulador Android
-npx expo start --ios       # con simulador iOS
-```
+## Roles y registro
 
-### Pantallas
+- **Cualquier persona puede registrarse** desde el login de la app (botón "Regístrate aquí"). En el registro pide su nombre, correo, contraseña, área y una foto de su rostro.
+- Al registrarse, el usuario obtiene el rol `user` (asistente). **No puede registrarse como administrador**: si lo intenta, el backend lo rechaza (403).
+- El **administrador** puede crear usuarios (e incluso otros administradores) desde la pestaña **Usuarios**, además de editar y eliminar cuentas.
 
-| Módulo      | Pantallas                                                                                       |
-|-------------|------------------------------------------------------------------------------------------------|
-| Usuarios    | Registro con captura de rostro (cámara/galería), tabla de usuarios, editar y eliminar (admin)   |
-| Asistencia  | Toma de asistencia por reconocimiento facial, asistencias del día (admin)                       |
-| Historial   | Por usuario y por área, con filtros de semana, mes o año (admin); el usuario ve el suyo        |
-| Horarios    | Crear, editar, eliminar y listar horarios (admin)                                               |
-| Vacaciones  | Solicitar y editar permisos (usuario), aprobar/rechazar y filtrar por usuario (admin)           |
+> El admin inicial se crea con el script de seed: `python seed_db.py` en `Backend/`
+> (crea `admin@checador.com` / `admin123`).
 
-## Estructura de la Base de Datos
+## Pantallas de la app
 
-Modelo relacional SQLite (4 tablas). Se puede migrar a PostgreSQL cambiando
-`DATABASE_URL` en `.env`.
+| Pestaña | Para qué sirve |
+|---|---|
+| Asistencia | Marcar entrada/salida con el rostro. Los admin ven los registros del día |
+| Historial | Consultar registros por período (semana/mes/año). El admin filtra por persona o área |
+| Horarios | El admin crea y administra los horarios del personal |
+| Permisos | Solicitar permisos/vacaciones; el admin los aprueba o rechaza |
+| Usuarios | Solo admin: registrar, editar y eliminar usuarios |
+| Perfil | Ver tus datos y cerrar sesión |
 
-```
-┌──────────────┐        ┌──────────────────┐        ┌─────────────┐
-│    users     │        │   attendances    │        │  schedules  │
-├──────────────┤        ├──────────────────┤        ├─────────────┤
-│ id (PK)      │ 1    n │ id (PK)          │        │ id (PK)     │
-│ name         │<───────│ user_id (FK) ────│ 1    n │ user_id (FK)│── nullable
-│ email (UQ)   │        │ timestamp        │<───────│ day_of_week │
-│ hashed_pswd  │        │ type (in/out)    │        │ start_time  │
-│ role         │        └──────────────────┘        │ end_time    │
-│ area         │                                     └─────────────┘
-│ face_img_path│        ┌──────────────────┐
-│ created_at   │ 1    n │    vacations     │
-└──────────────┘<───────┼──────────────────┤
-                        │ id (PK)          │
-                        │ user_id (FK)     │
-                        │ start_date       │
-                        │ end_date         │
-                        │ reason           │
-                        │ status           │
-                        └──────────────────┘
-```
+## Notas útiles
 
-- **users**: usuarios del sistema. `role` puede ser `admin` o `user`; `area` agrupa por
-  departamento (RH, Administrativo, TI, Ventas, Logística, Finanzas, Marketing).
-  `face_image_path` guarda la referencia a la foto de rostro usada como plantilla biométrica.
-- **attendances**: registros de entrada/salida. Cada *check* facial agrega un registro
-  alternando entre `in` (entrada) y `out` (salida) según el último registro del usuario.
-- **schedules**: horarios. `user_id` opcional: si es `NULL` aplica a todos (general),
-  si tiene valor aplica solo a ese usuario. `day_of_week` usa 0=Lunes … 6=Domingo.
-- **vacations**: solicitudes de permiso/vacaciones con `status`
-  (`pending`, `approved`, `rejected`).
-
-## API REST (resumen)
-
-| Método | Ruta                          | Descripción                                | Permiso |
-|--------|-------------------------------|--------------------------------------------|---------|
-| POST   | `/token`                      | Login con correo/contraseña (JWT)          | público |
-| POST   | `/auth/face-login`            | Login facial: reconoce + JWT + asistencia  | público |
-| POST   | `/users/register`             | Crear usuario + varias fotos de rostro     | admin   |
-| GET    | `/users/`                     | Lista de usuarios                          | admin   |
-| GET    | `/users/me`                   | Datos del usuario autenticado              | usuario |
-| PUT    | `/users/me`                   | Editar mi perfil                           | usuario |
-| GET    | `/users/{id}`                 | Detalle de usuario                         | usuario |
-| PUT    | `/users/{id}`                 | Editar usuario                             | admin   |
-| POST   | `/users/{id}/face`            | Actualizar rostro (varias fotos)           | admin   |
-| DELETE | `/users/{id}`                 | Eliminar usuario + su rostro               | admin   |
-| POST   | `/attendance/check`           | Toma de asistencia (imagen facial)         | usuario |
-| GET    | `/attendance/today`           | Asistencias del día                        | admin   |
-| GET    | `/attendance/user/{id}`       | Historial por usuario (año/mes/semana)     | usuario |
-| GET    | `/attendance/area`            | Historial por área (año/mes/semana)        | admin   |
-| POST   | `/schedules/`                 | Crear horario                              | admin   |
-| GET    | `/schedules/`                 | Listar horarios                            | usuario |
-| PUT    | `/schedules/{id}`             | Actualizar horario                         | admin   |
-| DELETE | `/schedules/{id}`             | Eliminar horario                           | admin   |
-| POST   | `/vacations/`                 | Solicitar permiso                          | usuario |
-| GET    | `/vacations/`                 | Listar todos los permisos                  | admin   |
-| GET    | `/vacations/user/{id}`        | Historial de permisos de un usuario        | usuario |
-| PUT    | `/vacations/{id}`             | Editar permiso / aprobar o rechazar        | usuario |
-| DELETE | `/vacations/{id}`             | Eliminar permiso                           | admin   |
-
-Filtros de historial: parámetros opcionales `year`, `month` y `week`
-(ej. `GET /attendance/user/3?year=2026&month=8`).
-
-## Notas
-
-- El reconocimiento compara la imagen capturada contra todas las fotos de cada
-  usuario en `Dataset/<Nombre>/` (modelo Facenet, distancia coseno). Si la distancia
-  mínima supera el umbral (0.6), el rostro se considera no registrado. Las
-  plantillas se indexan al arrancar para que cada reconocimiento sea casi inmediato.
-- `Dataset/` está junto a `Backend/` y `Frontend/` (configúralo con `DATASET_DIR` en
-  `.env`) y está ignorado por git por su tamaño.
-- Cambia `SECRET_KEY` en producción.
-- El frontend persiste el token JWT y los datos del usuario con AsyncStorage; al abrir
-  la app restaura la sesión automáticamente.
+- El reconocimiento compara la foto capturada contra las fotos de `Dataset/<Nombre>/` usando el modelo **Facenet** (distancia coseno). Si el rostro no coincide con nadie, la asistencia no se registra.
+- La app está hecha con un **tema oscuro tipo "glassmorphism"** y se adapta a cualquier tamaño de pantalla (celulares y tablets).
+- El teléfono solo puede usar la cámara con HTTPS: si quieres probar el panel web desde el celular, usa `run_phone.ps1` en `Backend/` para levantar el servidor seguro (puerto 8443).
+- En producción cambia la `SECRET_KEY` del archivo `.env`.
