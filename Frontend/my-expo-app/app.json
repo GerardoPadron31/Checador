@@ -12,6 +12,8 @@
       "tsconfigPaths": true
     },
 
+    "newArchEnabled": true,
+
     "plugins": [
       [
         "expo-splash-screen",

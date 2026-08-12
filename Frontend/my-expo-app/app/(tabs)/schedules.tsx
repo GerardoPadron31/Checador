@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import { Header, Card, Button, Chip, EmptyState, SectionLabel } from '../../components/ui';
+import { colors, rs } from '../../constants/theme';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -106,115 +108,110 @@ export default function SchedulesScreen() {
   };
 
   return (
-    <View className="flex-1 p-4 bg-gray-100">
-      <Text className="text-2xl font-bold mb-1">Horarios</Text>
-      <Text className="text-gray-500 mb-4">{schedules.length} registrados</Text>
+    <View className="flex-1 bg-[#0a0f1e]">
+      <Header title="Horarios" subtitle={`${schedules.length} registrados`} icon="calendar-outline" />
+      <View className="flex-1 px-5 pt-5">
+        <Button title="Agregar Horario" onPress={() => openModal()} icon="add-circle-outline" />
 
-      <TouchableOpacity
-        className="bg-blue-600 rounded-lg p-4 mb-4"
-        onPress={() => openModal()}
-      >
-        <Text className="text-white text-center font-semibold">Agregar Horario</Text>
-      </TouchableOpacity>
-
-      <FlatList
-        data={schedules}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => {
-          const userName = users.find((u) => u.id === item.user_id)?.name;
-          return (
-            <View className="bg-white p-4 rounded-lg mb-2 shadow-sm">
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="font-bold text-lg">{DAYS[item.day_of_week]}</Text>
-                  <Text className="text-gray-600">
-                    {item.start_time} - {item.end_time}
+        <FlatList
+          data={schedules}
+          className="mt-4"
+          contentContainerStyle={{ paddingBottom: 130 }}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={<EmptyState message="Sin horarios registrados" />}
+          renderItem={({ item }) => {
+            const userName = users.find((u) => u.id === item.user_id)?.name;
+            return (
+              <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View className="items-center justify-center mr-3" style={{ width: rs(44), height: rs(44), borderRadius: rs(12), backgroundColor: 'rgba(124,108,240,0.18)' }}>
+                  <Text className="font-bold" style={{ color: '#a48af8', fontSize: rs(18) }}>
+                    {DAYS[item.day_of_week][0]}
                   </Text>
-                  <Text className="text-gray-500 mt-1">
+                </View>
+                <View className="flex-1">
+                  <Text className="font-bold" style={{ color: colors.text }}>
+                    {DAYS[item.day_of_week]}
+                  </Text>
+                  <View className="flex-row items-center mt-0.5">
+                    <Ionicons name="time-outline" size={14} color={colors.muted} />
+                    <Text className="text-[#aeb9d6] ml-1">
+                      {item.start_time} - {item.end_time}
+                    </Text>
+                  </View>
+                  <Text className="text-[#9aa7c7] text-xs mt-1">
                     {item.user_id ? `Usuario: ${userName || item.user_id}` : 'General (todos)'}
                   </Text>
                 </View>
                 <View className="flex-row">
                   <TouchableOpacity
-                    className="bg-blue-100 p-2 rounded-lg mr-2"
+                    className="items-center justify-center mr-2"
+                    style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(124,108,240,0.18)' }}
                     onPress={() => openModal(item)}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="create-outline" size={18} color="#2563eb" />
+                    <Ionicons name="create-outline" size={rs(18)} color="#a48af8" />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="bg-red-100 p-2 rounded-lg"
+                    className="items-center justify-center"
+                    style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(239,68,68,0.18)' }}
                     onPress={() => deleteSchedule(item)}
+                    activeOpacity={0.8}
                   >
-                    <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                    <Ionicons name="trash-outline" size={rs(18)} color="#fca5a5" />
                   </TouchableOpacity>
                 </View>
-              </View>
-            </View>
-          );
-        }}
-      />
+              </Card>
+            );
+          }}
+        />
+      </View>
 
       <Modal animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <ScrollView className="flex-1 bg-white p-6">
-          <Text className="text-2xl font-bold mb-4">
-            {editing ? 'Editar Horario' : 'Nuevo Horario'}
-          </Text>
+        <View className="flex-1 bg-[#0a0f1e]">
+          <Header
+            title={editing ? 'Editar Horario' : 'Nuevo Horario'}
+            subtitle="Configura el horario"
+            icon="calendar-outline"
+          />
+          <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <SectionLabel>Día de la semana</SectionLabel>
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {DAYS.map((d, i) => (
+                <Chip key={d} label={d} selected={parseInt(dayOfWeek) === i} onPress={() => setDayOfWeek(String(i))} />
+              ))}
+            </View>
 
-          <Text className="text-sm font-semibold mb-1">Día de la semana</Text>
-          <View className="flex-row flex-wrap mb-3">
-            {DAYS.map((d, i) => (
-              <TouchableOpacity
-                key={i}
-                className={`p-2 rounded-lg mr-2 mb-2 ${parseInt(dayOfWeek) === i ? 'bg-blue-600' : 'bg-gray-200'}`}
-                onPress={() => setDayOfWeek(String(i))}
-              >
-                <Text className={parseInt(dayOfWeek) === i ? 'text-white' : 'text-gray-700'}>{d}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+            <SectionLabel>Usuario (opcional)</SectionLabel>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
+              <View className="flex-row gap-2">
+                <Chip label="General" selected={userId === ''} onPress={() => setUserId('')} />
+                {users.map((u) => (
+                  <Chip key={u.id} label={u.name} selected={userId === String(u.id)} onPress={() => setUserId(String(u.id))} />
+                ))}
+              </View>
+            </ScrollView>
 
-          <Text className="text-sm font-semibold mb-1">Usuario (opcional)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-            <TouchableOpacity
-              className={`p-3 rounded-lg mr-2 ${userId === '' ? 'bg-green-600' : 'bg-gray-200'}`}
-              onPress={() => setUserId('')}
-            >
-              <Text className={userId === '' ? 'text-white' : 'text-gray-700'}>General</Text>
-            </TouchableOpacity>
-            {users.map((u) => (
-              <TouchableOpacity
-                key={u.id}
-                className={`p-3 rounded-lg mr-2 ${userId === String(u.id) ? 'bg-green-600' : 'bg-gray-200'}`}
-                onPress={() => setUserId(String(u.id))}
-              >
-                <Text className={userId === String(u.id) ? 'text-white' : 'text-gray-700'}>{u.name}</Text>
-              </TouchableOpacity>
-            ))}
+            <TextInput
+              className="bg-[#0d1428] border rounded-xl px-4 py-3.5 mb-3"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
+              placeholder="Hora inicio (HH:MM)"
+              placeholderTextColor={colors.muted2}
+              value={startTime}
+              onChangeText={setStartTime}
+            />
+            <TextInput
+              className="bg-[#0d1428] border rounded-xl px-4 py-3.5 mb-5"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
+              placeholder="Hora fin (HH:MM)"
+              placeholderTextColor={colors.muted2}
+              value={endTime}
+              onChangeText={setEndTime}
+            />
+
+            <Button title="Guardar" onPress={saveSchedule} variant="accent" icon="checkmark-circle-outline" />
+            <Button title="Cancelar" onPress={() => setModalVisible(false)} variant="ghost" />
           </ScrollView>
-
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Hora inicio (HH:MM)"
-            value={startTime}
-            onChangeText={setStartTime}
-          />
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Hora fin (HH:MM)"
-            value={endTime}
-            onChangeText={setEndTime}
-          />
-
-          <TouchableOpacity className="bg-green-600 p-3 rounded-lg mb-3" onPress={saveSchedule}>
-            <Text className="text-white text-center font-semibold">Guardar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-gray-400 p-3 rounded-lg mb-6"
-            onPress={() => setModalVisible(false)}
-          >
-            <Text className="text-center">Cancelar</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </View>
       </Modal>
     </View>
   );

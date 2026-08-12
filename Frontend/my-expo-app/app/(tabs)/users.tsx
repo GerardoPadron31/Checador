@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Modal, TextInput, Image, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraPermissions } from 'expo-camera';
 import FaceCapture from '../../components/FaceCapture';
+import { Header, Card, Button, Chip, Field, EmptyState, SectionLabel } from '../../components/ui';
+import { colors, rs } from '../../constants/theme';
 
 const AREAS = ['RH', 'Administrativo', 'TI', 'Ventas', 'Logística', 'Finanzas', 'Marketing'];
 
@@ -67,7 +69,7 @@ export default function UsersScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -153,144 +155,146 @@ export default function UsersScreen() {
   }
 
   return (
-    <View className="flex-1 p-4 bg-gray-100">
-      <Text className="text-2xl font-bold mb-1">Usuarios</Text>
-      <Text className="text-gray-500 mb-4">{users.length} registrados</Text>
+    <View className="flex-1 bg-[#0a0f1e]">
+      <Header title="Usuarios" subtitle={`${users.length} registrados`} icon="people-outline" />
+      <View className="flex-1 px-5 pt-5">
+        <Button title="Agregar Usuario" onPress={() => openModal()} icon="person-add-outline" />
 
-      <TouchableOpacity
-        className="bg-blue-600 rounded-lg p-4 mb-4"
-        onPress={() => openModal()}
-      >
-        <Text className="text-white text-center font-semibold">Agregar Usuario</Text>
-      </TouchableOpacity>
-
-      <FlatList
-        data={users}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View className="bg-white p-4 rounded-lg mb-2 shadow-sm">
-            <View className="flex-row justify-between items-start">
-              <View className="flex-1">
-                <Text className="font-bold text-lg">{item.name}</Text>
-                <Text className="text-gray-600">{item.email}</Text>
-                <View className="flex-row mt-1">
-                  <Text className="text-gray-500 mr-3">Área: {item.area || 'N/A'}</Text>
-                  <Text className="text-gray-500">Rol: {item.role}</Text>
+        <FlatList
+          data={users}
+          className="mt-4"
+          contentContainerStyle={{ paddingBottom: 130 }}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={<EmptyState message="Sin usuarios" />}
+          renderItem={({ item }) => {
+            const initials = (item.name || '?')
+              .split(' ')
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase();
+            return (
+              <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View className="items-center justify-center mr-3" style={{ width: rs(48), height: rs(48), borderRadius: rs(24), backgroundColor: colors.primary }}>
+                  <Text className="text-white font-bold" style={{ fontSize: rs(15) }}>{initials}</Text>
                 </View>
-              </View>
-              <View className="flex-row">
-                <TouchableOpacity
-                  className="bg-blue-100 p-2 rounded-lg mr-2"
-                  onPress={() => openModal(item)}
-                >
-                  <Ionicons name="create-outline" size={18} color="#2563eb" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="bg-red-100 p-2 rounded-lg"
-                  onPress={() => deleteUser(item)}
-                >
-                  <Ionicons name="trash-outline" size={18} color="#dc2626" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
-      />
+                <View className="flex-1">
+                  <Text className="font-bold" style={{ color: colors.text }}>
+                    {item.name}
+                  </Text>
+                  <Text className="text-[#9aa7c7] text-sm">{item.email}</Text>
+                  <View className="flex-row mt-1">
+                    <Text className="text-[#9aa7c7] text-xs mr-3">Área: {item.area || 'N/A'}</Text>
+                    <Text className="text-[#9aa7c7] text-xs capitalize">Rol: {item.role}</Text>
+                  </View>
+                </View>
+                <View className="flex-row">
+                  <TouchableOpacity
+                    className="items-center justify-center mr-2"
+                    style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(124,108,240,0.18)' }}
+                    onPress={() => openModal(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="create-outline" size={rs(18)} color="#a48af8" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="items-center justify-center"
+                    style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(239,68,68,0.18)' }}
+                    onPress={() => deleteUser(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="trash-outline" size={rs(18)} color="#fca5a5" />
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            );
+          }}
+        />
+      </View>
 
       <Modal animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <ScrollView className="flex-1 bg-white p-6">
-          <Text className="text-2xl font-bold mb-4">
-            {editingUser ? 'Editar Usuario' : 'Registrar Usuario'}
-          </Text>
+        <View className="flex-1 bg-[#0a0f1e]">
+          <Header
+            title={editingUser ? 'Editar Usuario' : 'Registrar Usuario'}
+            subtitle={editingUser ? 'Actualiza los datos' : 'Nuevo usuario con rostro'}
+            icon="person-outline"
+          />
+          <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <Field label="Nombre completo" placeholder="Ej. Juan Pérez" value={name} onChangeText={setName} />
+            <Field
+              label="Email"
+              placeholder="correo@checador.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Field
+              label="Contraseña"
+              placeholder={editingUser ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Nombre completo"
-            value={name}
-            onChangeText={setName}
-          />
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder={editingUser ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+            <SectionLabel>Rol</SectionLabel>
+            <View className="flex-row gap-2 mb-6">
+              {(['user', 'admin'] as const).map((r) => (
+                <Chip key={r} label={r === 'user' ? 'Usuario' : 'Administrador'} selected={role === r} onPress={() => setRole(r)} />
+              ))}
+            </View>
 
-          <Text className="text-sm font-semibold mb-1">Rol</Text>
-          <View className="flex-row mb-3">
-            {(['user', 'admin'] as const).map((r) => (
+            <SectionLabel>Área</SectionLabel>
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {AREAS.map((a) => (
+                <Chip key={a} label={a} selected={area === a} onPress={() => setArea(a)} />
+              ))}
+            </View>
+
+            <SectionLabel>{editingUser ? 'Actualizar rostro' : 'Foto de rostro'}</SectionLabel>
+            <View className="flex-row gap-2 mb-4">
               <TouchableOpacity
-                key={r}
-                className={`flex-1 p-3 rounded-lg mr-2 ${role === r ? 'bg-blue-600' : 'bg-gray-200'}`}
-                onPress={() => setRole(r)}
+                className="flex-1 flex-row items-center justify-center bg-[#0d1428] border rounded-xl p-4"
+                style={{ borderColor: colors.borderStrong }}
+                onPress={openCamera}
+                activeOpacity={0.8}
               >
-                <Text className={`text-center ${role === r ? 'text-white' : 'text-gray-700'}`}>
-                  {r === 'user' ? 'Usuario' : 'Administrador'}
+                <Ionicons name="camera" size={20} color="#a48af8" style={{ marginRight: 6 }} />
+                <Text className="font-semibold" style={{ color: colors.text }}>
+                  Cámara
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text className="text-sm font-semibold mb-1">Área</Text>
-          <View className="flex-row flex-wrap mb-3">
-            {AREAS.map((a) => (
               <TouchableOpacity
-                key={a}
-                className={`p-2 rounded-lg mr-2 mb-2 ${area === a ? 'bg-green-600' : 'bg-gray-200'}`}
-                onPress={() => setArea(a)}
+                className="flex-1 flex-row items-center justify-center bg-[#0d1428] border rounded-xl p-4"
+                style={{ borderColor: colors.borderStrong }}
+                onPress={pickImage}
+                activeOpacity={0.8}
               >
-                <Text className={area === a ? 'text-white' : 'text-gray-700'}>{a}</Text>
+                <Ionicons name="images" size={20} color="#a48af8" style={{ marginRight: 6 }} />
+                <Text className="font-semibold" style={{ color: colors.text }}>
+                  Galería
+                </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-
-          {!editingUser && (
-            <>
-              <TouchableOpacity className="bg-blue-500 p-3 rounded-lg mb-2" onPress={openCamera}>
-                <Text className="text-white text-center font-semibold">Capturar rostro con cámara</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="bg-gray-500 p-3 rounded-lg mb-2" onPress={pickImage}>
-                <Text className="text-white text-center font-semibold">Elegir de galería</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {editingUser && (
-            <>
-              <TouchableOpacity className="bg-blue-500 p-3 rounded-lg mb-2" onPress={openCamera}>
-                <Text className="text-white text-center font-semibold">Actualizar rostro con cámara</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="bg-gray-500 p-3 rounded-lg mb-2" onPress={pickImage}>
-                <Text className="text-white text-center font-semibold">Actualizar rostro desde galería</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {image && (
-            <View className="items-center mb-3">
-              <Image source={{ uri: image }} className="w-32 h-32 rounded-lg" />
-              <Text className="text-green-600 mt-1">Nueva imagen de rostro</Text>
             </View>
-          )}
 
-          <TouchableOpacity className="bg-green-600 p-3 rounded-lg mb-3" onPress={saveUser}>
-            <Text className="text-white text-center font-semibold">Guardar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-gray-400 p-3 rounded-lg mb-6"
-            onPress={() => setModalVisible(false)}
-          >
-            <Text className="text-center">Cancelar</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {image && (
+              <View className="items-center mb-5">
+                <Image source={{ uri: image }} style={{ width: rs(128), height: rs(128), borderRadius: rs(16) }} />
+                <Text className="mt-2" style={{ color: '#00e5a8' }}>
+                  Nueva imagen de rostro
+                </Text>
+              </View>
+            )}
+
+            <Button
+              title={editingUser ? 'Guardar cambios' : 'Registrar usuario'}
+              onPress={saveUser}
+              variant="accent"
+              icon="checkmark-circle-outline"
+            />
+            <Button title="Cancelar" onPress={() => setModalVisible(false)} variant="ghost" />
+          </ScrollView>
+        </View>
       </Modal>
     </View>
   );

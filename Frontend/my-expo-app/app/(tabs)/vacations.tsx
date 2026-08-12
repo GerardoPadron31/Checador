@@ -3,6 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, Alert, Modal, TextInput, Scroll
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Header, Card, Button, Chip, EmptyState, Badge, SectionLabel } from '../../components/ui';
+import { colors, rs } from '../../constants/theme';
 
 interface Vacation {
   id: number;
@@ -17,12 +19,6 @@ interface UserOption {
   id: number;
   name: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-yellow-600',
-  approved: 'text-green-600',
-  rejected: 'text-red-600',
-};
 
 export default function VacationsScreen() {
   const user = useAuthStore((state) => state.user);
@@ -160,138 +156,154 @@ export default function VacationsScreen() {
     ? vacations.filter((v) => v.user_id === filterUserId)
     : vacations;
 
+  const statusBadge = (status: string) =>
+    status === 'approved' ? (
+      <Badge label="Aprobado" tone="success" />
+    ) : status === 'rejected' ? (
+      <Badge label="Rechazado" tone="danger" />
+    ) : (
+      <Badge label="Pendiente" tone="warning" />
+    );
+
   return (
-    <View className="flex-1 p-4 bg-gray-100">
-      <Text className="text-2xl font-bold mb-1">
-        {isAdmin ? 'Permisos y Vacaciones' : 'Mis Vacaciones'}
-      </Text>
-      <Text className="text-gray-500 mb-4">{displayed.length} solicitudes</Text>
-
-      <TouchableOpacity
-        className="bg-blue-600 rounded-lg p-4 mb-4"
-        onPress={() => openModal()}
-      >
-        <Text className="text-white text-center font-semibold">Solicitar Permiso</Text>
-      </TouchableOpacity>
-
-      {isAdmin && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-          <TouchableOpacity
-            className={`p-3 rounded-lg mr-2 ${filterUserId === null ? 'bg-green-600' : 'bg-gray-200'}`}
-            onPress={() => setFilterUserId(null)}
-          >
-            <Text className={filterUserId === null ? 'text-white font-semibold' : 'text-gray-700'}>Todos</Text>
-          </TouchableOpacity>
-          {users.map((u) => (
-            <TouchableOpacity
-              key={u.id}
-              className={`p-3 rounded-lg mr-2 ${filterUserId === u.id ? 'bg-green-600' : 'bg-gray-200'}`}
-              onPress={() => setFilterUserId(u.id)}
-            >
-              <Text className={filterUserId === u.id ? 'text-white font-semibold' : 'text-gray-700'}>{u.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-
-      <FlatList
-        data={displayed}
-        keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text className="text-center text-gray-400 my-8">Sin solicitudes</Text>
-        }
-        renderItem={({ item }) => {
-          const userName = users.find((u) => u.id === item.user_id)?.name;
-          return (
-            <View className="bg-white p-4 rounded-lg mb-2 shadow-sm">
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  {isAdmin && (
-                    <Text className="font-bold text-lg">{userName || `Usuario ${item.user_id}`}</Text>
-                  )}
-                  <Text className={isAdmin ? 'text-gray-600' : 'font-bold text-lg'}>
-                    {item.start_date} → {item.end_date}
-                  </Text>
-                  <Text className="text-gray-500 mt-1">Motivo: {item.reason || 'N/A'}</Text>
-                  <Text className={`mt-1 font-semibold capitalize ${STATUS_COLORS[item.status] || 'text-gray-600'}`}>
-                    {item.status === 'approved' ? 'Aprobado' : item.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                  </Text>
-                </View>
-                <View className="flex-row">
-                  {item.status === 'pending' && (
-                    <>
-                      <TouchableOpacity
-                        className="bg-blue-100 p-2 rounded-lg mr-2"
-                        onPress={() => openModal(item)}
-                      >
-                        <Ionicons name="create-outline" size={18} color="#2563eb" />
-                      </TouchableOpacity>
-                      {isAdmin && (
-                        <>
-                          <TouchableOpacity
-                            className="bg-green-100 p-2 rounded-lg mr-2"
-                            onPress={() => setStatus(item, 'approved')}
-                          >
-                            <Ionicons name="checkmark" size={18} color="#16a34a" />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            className="bg-yellow-100 p-2 rounded-lg mr-2"
-                            onPress={() => setStatus(item, 'rejected')}
-                          >
-                            <Ionicons name="close" size={18} color="#d97706" />
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {(isAdmin || item.status === 'pending') && (
-                    <TouchableOpacity
-                      className="bg-red-100 p-2 rounded-lg"
-                      onPress={() => deleteVacation(item)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#dc2626" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-          );
-        }}
+    <View className="flex-1 bg-[#0a0f1e]">
+      <Header
+        title={isAdmin ? 'Permisos y Vacaciones' : 'Mis Vacaciones'}
+        subtitle={`${displayed.length} solicitudes`}
+        icon="umbrella-outline"
       />
+      <View className="flex-1 px-5 pt-5">
+        <Button title="Solicitar Permiso" onPress={() => openModal()} icon="add-circle-outline" />
+
+        {isAdmin && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4 mb-3">
+            <View className="flex-row gap-2">
+              <Chip label="Todos" selected={filterUserId === null} onPress={() => setFilterUserId(null)} />
+              {users.map((u) => (
+                <Chip key={u.id} label={u.name} selected={filterUserId === u.id} onPress={() => setFilterUserId(u.id)} />
+              ))}
+            </View>
+          </ScrollView>
+        )}
+
+        <FlatList
+          data={displayed}
+          className="mt-2"
+          contentContainerStyle={{ paddingBottom: 130 }}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={<EmptyState message="Sin solicitudes" />}
+          renderItem={({ item }) => {
+            const userName = users.find((u) => u.id === item.user_id)?.name;
+            return (
+              <Card>
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    {isAdmin && (
+                      <Text className="font-bold text-lg" style={{ color: colors.text }}>
+                        {userName || `Usuario ${item.user_id}`}
+                      </Text>
+                    )}
+                    <View className="flex-row items-center mt-1">
+                      <Ionicons name="calendar-outline" size={16} color={colors.muted} />
+                      <Text className={`${isAdmin ? 'text-[#aeb9d6]' : 'font-bold text-lg'} ml-1`} style={isAdmin ? undefined : { color: colors.text }}>
+                        {item.start_date} → {item.end_date}
+                      </Text>
+                    </View>
+                    {item.reason ? (
+                      <Text className="text-[#9aa7c7] mt-1.5">Motivo: {item.reason}</Text>
+                    ) : null}
+                    <View className="mt-2">{statusBadge(item.status)}</View>
+                  </View>
+                  <View className="flex-row">
+                    {item.status === 'pending' && (
+                      <>
+                        <TouchableOpacity
+                          className="items-center justify-center mr-2"
+                          style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(124,108,240,0.18)' }}
+                          onPress={() => openModal(item)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="create-outline" size={rs(18)} color="#a48af8" />
+                        </TouchableOpacity>
+                        {isAdmin && (
+                          <>
+                            <TouchableOpacity
+                              className="items-center justify-center mr-2"
+                              style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(0,212,160,0.18)' }}
+                              onPress={() => setStatus(item, 'approved')}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons name="checkmark" size={rs(18)} color="#00e5a8" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              className="items-center justify-center mr-2"
+                              style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(245,158,11,0.18)' }}
+                              onPress={() => setStatus(item, 'rejected')}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons name="close" size={rs(18)} color="#fbbf24" />
+                            </TouchableOpacity>
+                          </>
+                        )}
+                      </>
+                    )}
+                    {(isAdmin || item.status === 'pending') && (
+                      <TouchableOpacity
+                        className="items-center justify-center"
+                        style={{ width: rs(36), height: rs(36), borderRadius: rs(18), backgroundColor: 'rgba(239,68,68,0.18)' }}
+                        onPress={() => deleteVacation(item)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="trash-outline" size={rs(18)} color="#fca5a5" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </Card>
+            );
+          }}
+        />
+      </View>
 
       <Modal animationType="slide" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <ScrollView className="flex-1 bg-white p-6">
-          <Text className="text-2xl font-bold mb-4">
-            {editing ? 'Editar Permiso' : 'Nuevo Permiso'}
-          </Text>
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Fecha inicio (YYYY-MM-DD)"
-            value={startDate}
-            onChangeText={setStartDate}
+        <View className="flex-1 bg-[#0a0f1e]">
+          <Header
+            title={editing ? 'Editar Permiso' : 'Nuevo Permiso'}
+            subtitle="Datos de la solicitud"
+            icon="umbrella-outline"
           />
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Fecha fin (YYYY-MM-DD)"
-            value={endDate}
-            onChangeText={setEndDate}
-          />
-          <TextInput
-            className="border border-gray-300 p-3 mb-3 rounded-lg"
-            placeholder="Motivo"
-            value={reason}
-            onChangeText={setReason}
-          />
-          <TouchableOpacity className="bg-green-600 p-3 rounded-lg mb-3" onPress={saveVacation}>
-            <Text className="text-white text-center font-semibold">Guardar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="bg-gray-400 p-3 rounded-lg mb-6"
-            onPress={() => setModalVisible(false)}
-          >
-            <Text className="text-center">Cancelar</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <SectionLabel>Fecha inicio</SectionLabel>
+            <TextInput
+              className="bg-[#0d1428] border rounded-xl px-4 py-3.5 mb-3"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted2}
+              value={startDate}
+              onChangeText={setStartDate}
+            />
+            <SectionLabel>Fecha fin</SectionLabel>
+            <TextInput
+              className="bg-[#0d1428] border rounded-xl px-4 py-3.5 mb-3"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted2}
+              value={endDate}
+              onChangeText={setEndDate}
+            />
+            <SectionLabel>Motivo</SectionLabel>
+            <TextInput
+              className="bg-[#0d1428] border rounded-xl px-4 py-3.5 mb-5"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
+              placeholder="Ej. Vacaciones anuales"
+              placeholderTextColor={colors.muted2}
+              value={reason}
+              onChangeText={setReason}
+            />
+            <Button title="Guardar" onPress={saveVacation} variant="accent" icon="checkmark-circle-outline" />
+            <Button title="Cancelar" onPress={() => setModalVisible(false)} variant="ghost" />
+          </ScrollView>
+        </View>
       </Modal>
     </View>
   );

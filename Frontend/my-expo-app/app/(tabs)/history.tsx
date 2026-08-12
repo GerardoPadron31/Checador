@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, FlatList, Alert, TextInput, ScrollView, R
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Header, Card, Button, Badge, EmptyState, Chip, SectionLabel } from '../../components/ui';
+import { colors, rs } from '../../constants/theme';
 
 interface AttendanceRecord {
   id: number;
@@ -110,79 +112,82 @@ export default function HistoryScreen() {
     }
   };
 
-  const FilterButton = ({ label, value }: { label: string; value: FilterMode }) => (
-    <TouchableOpacity
-      className={`flex-1 p-2 rounded-lg mr-2 ${mode === value ? 'bg-blue-600' : 'bg-gray-200'}`}
-      onPress={() => setMode(value)}
-    >
-      <Text className={`text-center text-sm ${mode === value ? 'text-white' : 'text-gray-700'}`}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+  const filters: { label: string; value: FilterMode }[] = [
+    { label: 'Todo', value: 'all' },
+    { label: 'Semana', value: 'week' },
+    { label: 'Mes', value: 'month' },
+    { label: 'Año', value: 'year' },
+  ];
 
   return (
-    <ScrollView className="flex-1 bg-gray-100" refreshControl={
-      <RefreshControl refreshing={loading} onRefresh={fetchHistory} />
-    }>
-      <View className="p-4">
-        <Text className="text-2xl font-bold mb-1">Historial de Asistencia</Text>
-        <Text className="text-gray-500 mb-4">
-          {mode === 'week' && 'Semana actual'}
-          {mode === 'month' && 'Mes actual'}
-          {mode === 'year' && 'Año actual'}
-          {mode === 'all' && 'Todo el historial'}
-        </Text>
-
-        {isAdmin && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-            {users.map((u) => (
-              <TouchableOpacity
-                key={u.id}
-                className={`p-3 rounded-lg mr-2 ${selectedUserId === u.id ? 'bg-green-600' : 'bg-white border border-gray-200'}`}
-                onPress={() => setSelectedUserId(u.id)}
-              >
-                <Text className={selectedUserId === u.id ? 'text-white font-semibold' : 'text-gray-700'}>
-                  {u.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+    <View className="flex-1 bg-[#0a0f1e]">
+      <Header title="Historial de Asistencia" subtitle="Consulta de registros" icon="time-outline" />
+      <ScrollView
+        className="flex-1 px-5 pt-5"
+        contentContainerStyle={{ paddingBottom: 130 }}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchHistory} />}
+      >
+        <Card>
+          <SectionLabel>Periodo</SectionLabel>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+            <View className="flex-row gap-2">
+              {filters.map((f) => (
+                <Chip
+                  key={f.value}
+                  label={f.label}
+                  selected={mode === f.value}
+                  onPress={() => setMode(f.value)}
+                />
+              ))}
+            </View>
           </ScrollView>
-        )}
 
-        <View className="flex-row mb-3">
-          <FilterButton label="Todo" value="all" />
-          <FilterButton label="Semana" value="week" />
-          <FilterButton label="Mes" value="month" />
-          <FilterButton label="Año" value="year" />
-        </View>
+          {isAdmin && (
+            <>
+              <SectionLabel>Empleado</SectionLabel>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+                <View className="flex-row gap-2">
+                  {users.map((u) => (
+                    <Chip
+                      key={u.id}
+                      label={u.name}
+                      selected={selectedUserId === u.id}
+                      onPress={() => setSelectedUserId(u.id)}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+            </>
+          )}
 
-        <TouchableOpacity className="bg-blue-600 rounded-lg p-3 mb-3" onPress={fetchHistory}>
-          <Text className="text-white text-center font-semibold">
-            {isAdmin ? 'Ver historial del usuario' : 'Ver mi historial'}
-          </Text>
-        </TouchableOpacity>
+          <Button
+            title={isAdmin ? 'Ver historial del usuario' : 'Ver mi historial'}
+            onPress={fetchHistory}
+            icon="search-outline"
+          />
+        </Card>
 
         {isAdmin && (
-          <View className="bg-white p-4 rounded-lg shadow-sm mb-3">
-            <Text className="font-semibold mb-2">Historial por área</Text>
+          <Card>
+            <SectionLabel>Historial por área</SectionLabel>
             <TextInput
-              className="border border-gray-300 p-2 mb-2 rounded-lg"
+              className="bg-[#0d1428] border rounded-xl px-4 py-3 mb-3"
+              style={{ borderColor: colors.borderStrong, color: colors.text }}
               placeholder="Área (ej. RH, Administrativo, TI...)"
+              placeholderTextColor={colors.muted2}
               value={area}
               onChangeText={setArea}
             />
-            <TouchableOpacity className="bg-green-600 rounded-lg p-3" onPress={fetchAreaHistory}>
-              <Text className="text-white text-center font-semibold">Consultar área</Text>
-            </TouchableOpacity>
-          </View>
+            <Button title="Consultar área" onPress={fetchAreaHistory} variant="accent" icon="business-outline" />
+          </Card>
         )}
 
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="font-semibold">{records.length} registros</Text>
+        <View className="flex-row justify-between items-center mt-3 mb-3">
+          <Text className="font-semibold text-[#9aa7c7]">{records.length} registros</Text>
           {records.length > 0 && (
             <TouchableOpacity
-              className="bg-gray-200 p-2 rounded-lg flex-row items-center"
+              className="bg-[#141d38] border rounded-full px-3 py-2 flex-row items-center"
+              style={{ borderColor: colors.border }}
               onPress={() => {
                 const csv = ['Nombre,UsuarioID,Fecha,Tipo']
                   .concat(records.map((r) => {
@@ -194,9 +199,12 @@ export default function HistoryScreen() {
                   .join('\n');
                 Alert.alert('Historial (CSV)', csv, [{ text: 'OK' }]);
               }}
+              activeOpacity={0.8}
             >
-              <Ionicons name="download-outline" size={16} color="#374151" />
-              <Text className="text-gray-700 ml-1 text-sm">Exportar CSV</Text>
+              <Ionicons name="download-outline" size={16} color={colors.primary} />
+              <Text className="ml-1 text-sm font-semibold" style={{ color: colors.primary }}>
+                Exportar CSV
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -206,32 +214,33 @@ export default function HistoryScreen() {
           scrollEnabled={false}
           keyExtractor={(item) => item.id.toString()}
           ListEmptyComponent={
-            <Text className="text-center text-gray-400 mt-8">
-              {loading ? 'Cargando...' : 'Sin registros'}
-            </Text>
+            <EmptyState message={loading ? 'Cargando...' : 'Sin registros'} />
           }
           renderItem={({ item }) => (
-            <View className="bg-white p-3 rounded-lg mb-2 shadow-sm flex-row items-center">
-              <Ionicons
-                name={item.type === 'in' ? 'log-in-outline' : 'log-out-outline'}
-                size={22}
-                color={item.type === 'in' ? '#16a34a' : '#dc2626'}
-              />
-              <View className="ml-3 flex-1">
-                <Text className="font-semibold">
+            <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View
+                className="items-center justify-center mr-3"
+                style={{ width: rs(44), height: rs(44), borderRadius: rs(22), backgroundColor: item.type === 'in' ? colors.accentLight : colors.dangerLight }}
+              >
+                <Ionicons
+                  name={item.type === 'in' ? 'log-in-outline' : 'log-out-outline'}
+                  size={rs(20)}
+                  color={item.type === 'in' ? colors.accentDark : colors.danger}
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="font-semibold" style={{ color: colors.text }}>
                   {item.user?.name || `Usuario ${item.user_id}`}
                 </Text>
-                <Text className="text-gray-500 text-sm">
+                <Text className="text-[#9aa7c7] text-sm">
                   {new Date(item.timestamp).toLocaleString()}
                 </Text>
               </View>
-              <Text className={`font-semibold ${item.type === 'in' ? 'text-green-600' : 'text-red-600'}`}>
-                {item.type === 'in' ? 'Entrada' : 'Salida'}
-              </Text>
-            </View>
+              <Badge label={item.type === 'in' ? 'Entrada' : 'Salida'} tone={item.type === 'in' ? 'in' : 'out'} />
+            </Card>
           )}
         />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import FaceCapture from '../../components/FaceCapture';
+import { Header, Button, Chip, Field, SectionLabel } from '../../components/ui';
+import { colors, rs } from '../../constants/theme';
 
 const AREAS = ['RH', 'Administrativo', 'TI', 'Ventas', 'Logística', 'Finanzas', 'Marketing'];
 
@@ -12,7 +15,6 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user');
   const [area, setArea] = useState('RH');
   const [image, setImage] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -22,7 +24,7 @@ export default function RegisterScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -48,6 +50,10 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
+    if (!name.trim() || !email.trim() || !password) {
+      Alert.alert('Error', 'Nombre, email y contraseña son obligatorios');
+      return;
+    }
     if (!image) {
       Alert.alert('Error', 'Debes capturar o seleccionar una imagen de rostro');
       return;
@@ -57,7 +63,6 @@ export default function RegisterScreen() {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('password', password);
-    formData.append('role', role);
     formData.append('area', area);
     formData.append('face_image', {
       uri: image,
@@ -88,85 +93,68 @@ export default function RegisterScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-white p-6">
-      <Text className="text-2xl font-bold mb-4">Registrar Usuario</Text>
+    <View className="flex-1 bg-[#0a0f1e]">
+      <Header title="Registrar Usuario" subtitle="Nuevo usuario con rostro" icon="person-add-outline" />
+      <ScrollView className="flex-1 px-6 pt-6" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <Field label="Nombre completo" placeholder="Ej. Juan Pérez" value={name} onChangeText={setName} />
+        <Field
+          label="Email"
+          placeholder="correo@checador.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <Field label="Contraseña" placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
 
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-3"
-        placeholder="Nombre completo"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-3"
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-3"
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <SectionLabel>Área</SectionLabel>
+        <View className="flex-row flex-wrap gap-2 mb-6">
+          {AREAS.map((a) => (
+            <Chip key={a} label={a} selected={area === a} onPress={() => setArea(a)} />
+          ))}
+        </View>
 
-      <Text className="text-sm font-semibold mb-1">Rol</Text>
-      <View className="flex-row mb-3">
-        {(['user', 'admin'] as const).map((r) => (
+        <SectionLabel>Foto de rostro</SectionLabel>
+        <View className="flex-row gap-2 mb-4">
           <TouchableOpacity
-            key={r}
-            className={`flex-1 p-3 rounded-lg mr-2 ${role === r ? 'bg-blue-600' : 'bg-gray-200'}`}
-            onPress={() => setRole(r)}
+            className="flex-1 flex-row items-center justify-center bg-[#0d1428] border rounded-xl p-4"
+            style={{ borderColor: colors.borderStrong }}
+            onPress={openCamera}
+            activeOpacity={0.8}
           >
-            <Text className={`text-center ${role === r ? 'text-white' : 'text-gray-700'}`}>
-              {r === 'user' ? 'Usuario' : 'Administrador'}
+            <Ionicons name="camera" size={20} color="#a48af8" style={{ marginRight: 6 }} />
+            <Text className="font-semibold" style={{ color: colors.text }}>
+              Cámara
             </Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text className="text-sm font-semibold mb-1">Área</Text>
-      <View className="flex-row flex-wrap mb-3">
-        {AREAS.map((a) => (
           <TouchableOpacity
-            key={a}
-            className={`p-2 rounded-lg mr-2 mb-2 ${area === a ? 'bg-green-600' : 'bg-gray-200'}`}
-            onPress={() => setArea(a)}
+            className="flex-1 flex-row items-center justify-center bg-[#0d1428] border rounded-xl p-4"
+            style={{ borderColor: colors.borderStrong }}
+            onPress={pickImage}
+            activeOpacity={0.8}
           >
-            <Text className={area === a ? 'text-white' : 'text-gray-700'}>{a}</Text>
+            <Ionicons name="images" size={20} color="#a48af8" style={{ marginRight: 6 }} />
+            <Text className="font-semibold" style={{ color: colors.text }}>
+              Galería
+            </Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      <TouchableOpacity className="bg-blue-500 p-3 rounded-lg mb-2" onPress={openCamera}>
-        <Text className="text-white text-center font-semibold">Capturar rostro con cámara</Text>
-      </TouchableOpacity>
-      <TouchableOpacity className="bg-gray-500 p-3 rounded-lg mb-2" onPress={pickImage}>
-        <Text className="text-white text-center font-semibold">Elegir imagen de la galería</Text>
-      </TouchableOpacity>
-
-      {image && (
-        <View className="items-center mb-3">
-          <Image source={{ uri: image }} className="w-32 h-32 rounded-lg" />
-          <Text className="text-green-600 mt-1">Imagen de rostro lista</Text>
         </View>
-      )}
 
-      <TouchableOpacity
-        className="bg-green-600 p-3 rounded-lg mb-3"
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        <Text className="text-white text-center font-semibold">
-          {loading ? 'Registrando...' : 'Registrar'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity className="bg-gray-400 p-3 rounded-lg mb-6" onPress={() => router.back()}>
-        <Text className="text-center">Cancelar</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {image && (
+          <View className="items-center mb-5">
+            <Image source={{ uri: image }} style={{ width: rs(128), height: rs(128), borderRadius: rs(16) }} />
+            <View className="flex-row items-center mt-2">
+              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+              <Text className="ml-1" style={{ color: colors.accent }}>
+                Imagen de rostro lista
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <Button title="Registrar usuario" onPress={handleRegister} loading={loading} icon="person-add-outline" />
+        <Button title="Cancelar" onPress={() => router.back()} variant="ghost" />
+      </ScrollView>
+    </View>
   );
 }

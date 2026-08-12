@@ -16,6 +16,7 @@ interface AuthState {
   token: string | null;
   booting: boolean;
   login: (email: string, password: string) => Promise<void>;
+  faceLogin: (uri: string) => Promise<any>;
   logout: () => Promise<void>;
   register: (data: FormData) => Promise<void>;
   bootstrap: () => Promise<void>;
@@ -66,6 +67,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       // ignore
     }
+  },
+
+  faceLogin: async (uri) => {
+    const formData = new FormData();
+    formData.append('image', {
+      uri,
+      name: 'face.jpg',
+      type: 'image/jpeg',
+    } as any);
+    const response = await api.post('/auth/face-login', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const { access_token, user, attendance } = response.data;
+    await AsyncStorage.setItem('access_token', access_token);
+    await AsyncStorage.setItem('user_data', JSON.stringify(user));
+    set({ token: access_token, user });
+    return attendance;
   },
 
   logout: async () => {

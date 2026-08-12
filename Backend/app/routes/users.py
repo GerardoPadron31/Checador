@@ -24,8 +24,11 @@ async def register_user(
     face_images: Optional[List[UploadFile]] = File(None),
     face_image: Optional[UploadFile] = File(None),
     db: Session = Depends(auth.get_db),
-    current_user: models.User = Depends(auth.get_current_admin)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
+    # Registro público: solo un admin autenticado puede crear otro admin.
+    if role == schemas.UserRole.admin and (current_user is None or current_user.role != schemas.UserRole.admin):
+        raise HTTPException(status_code=403, detail="No puedes registrarte como administrador")
     images = _collect_images(face_images, face_image)
     if not images:
         raise HTTPException(status_code=400, detail="Se requiere al menos una foto de rostro")
