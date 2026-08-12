@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite3
+venv/
+.venv/
+.env
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.orig.*
+
+# Nativas
+ios/
+android/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Credenciales / temporales
+*.p8
+*.p12
+*.jks
+*.key
+*.mobileprovision
+
+# Certificado SSL local del panel (contiene llave privada)
+Backend/certs/
+
+# Dataset de rostros (fotos locales, no versionar)
+Dataset/

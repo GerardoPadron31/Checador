@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checador · Panel de Control</title>
+<style>
+  :root {
+    --bg0: #0a0f1e;
+    --bg1: #101830;
+    --bg2: #16203d;
+    --card: rgba(255, 255, 255, 0.055);
+    --card-hover: rgba(255, 255, 255, 0.09);
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text: #eef1f8;
+    --muted: #9aa7c7;
+    --accent: #7c6cf0;
+    --accent2: #00d4a0;
+    --green: #22c55e;
+    --blue: #38bdf8;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --radius: 16px;
+    --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1000px 600px at 85% -10%, rgba(124, 108, 240, 0.22), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(0, 212, 160, 0.14), transparent 60%),
+      linear-gradient(160deg, var(--bg0), var(--bg1));
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    background: rgba(8, 12, 26, 0.72);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(14px);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 22px 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 4px 10px 20px; }
+  .brand-logo {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), #4a3fd0);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 20px; color: #fff;
+    box-shadow: 0 8px 20px rgba(124, 108, 240, 0.45);
+  }
+  .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: .3px; }
+  .brand small { color: var(--muted); font-size: 11.5px; }
+
+  .nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .nav-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--muted); padding: 6px 10px 8px; }
+  .nav button {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; padding: 11px 12px;
+    background: transparent; color: var(--muted);
+    border: 1px solid transparent; border-radius: 12px;
+    font-size: 14px; font-weight: 600; text-align: left;
+    cursor: pointer; transition: all .18s ease;
+  }
+  .nav button svg { width: 19px; height: 19px; flex-shrink: 0; }
+  .nav button:hover { background: var(--card); color: var(--text); }
+  .nav button.active {
+    background: linear-gradient(135deg, rgba(124,108,240,.18), rgba(124,108,240,.06));
+    color: #fff; border-color: rgba(124,108,240,.35);
+  }
+  .nav button.active svg { color: var(--accent); }
+
+  .session-box {
+    margin-top: 14px; padding: 14px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .session-box .status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #64748b; box-shadow: 0 0 8px rgba(100,116,139,.6); }
+  .dot.on { background: var(--green); box-shadow: 0 0 10px rgba(34,197,94,.8); }
+  .session-box .email { color: var(--muted); font-size: 12px; margin-top: 4px; word-break: break-all; }
+  .session-box .logout {
+    margin-top: 10px; width: 100%; padding: 8px;
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--muted); border-radius: 10px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .18s ease;
+  }
+  .session-box .logout:hover { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.5); color: #fca5a5; }
+
+  /* ============ MAIN ============ */
+  .main { flex: 1; padding: 30px 34px 60px; max-width: 1200px; }
+  .view { display: none; animation: fade .25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .view-head { margin-bottom: 22px; }
+  .view-head h2 { font-size: 26px; font-weight: 800; }
+  .view-head p { color: var(--muted); margin-top: 5px; font-size: 14px; max-width: 640px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card:hover { background: var(--card-hover); border-color: var(--border-strong); transform: translateY(-2px); }
+  .card .card-top { display: flex; align-items: center; gap: 11px; }
+  .card .icon {
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 15px;
+  }
+  .card h3 { font-size: 15.5px; font-weight: 700; }
+  .card .desc { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fields .full { grid-column: 1 / -1; }
+  label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  label span b { color: var(--text); }
+  input, select {
+    background: rgba(10, 15, 32, 0.75);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px; padding: 9px 11px;
+    color: var(--text); font-size: 13.5px; width: 100%;
+    outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,108,240,.22); }
+  input[type="file"] { padding: 7px; font-size: 12.5px; }
+  input[type="file"]::file-selector-button {
+    background: rgba(124,108,240,.18); border: 1px solid rgba(124,108,240,.4);
+    color: #cfc8ff; border-radius: 8px; padding: 6px 10px; margin-right: 10px;
+    font-weight: 600; cursor: pointer; font-size: 12px;
+  }
+  .hint { font-size: 11px; color: var(--muted); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 16px; border-radius: 11px; border: none;
+    font-size: 13.5px; font-weight: 700; color: #fff; cursor: pointer;
+    transition: all .16s ease; width: 100%;
+  }
+  .btn svg { width: 16px; height: 16px; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
+  .btn.green { background: linear-gradient(135deg, #16a34a, #22c55e); box-shadow: 0 6px 16px rgba(34,197,94,.3); }
+  .btn.green:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn.blue { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 6px 16px rgba(56,189,248,.3); }
+  .btn.blue:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn.amber { background: linear-gradient(135deg, #d97706, #f59e0b); box-shadow: 0 6px 16px rgba(245,158,11,.3); }
+  .btn.amber:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn.purple { background: linear-gradient(135deg, #5b4fd6, #7c6cf0); box-shadow: 0 6px 16px rgba(124,108,240,.35); }
+  .btn.purple:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn.red { background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 6px 16px rgba(239,68,68,.3); }
+  .btn.red:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+  .result {
+    display: none;
+    margin-top: 2px; padding: 12px; border-radius: 11px;
+    background: rgba(8, 12, 26, .6); border: 1px solid var(--border);
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 12px; max-height: 260px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .result.show { display: block; animation: fade .2s ease; }
+  .result.ok { border-color: rgba(34,197,94,.4); }
+  .result.err { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.06); color: #fecaca; }
+
+  table.result-table { width: 100%; border-collapse: collapse; font-family: inherit; white-space: normal; }
+  .result-table th {
+    text-align: left; padding: 6px 8px; font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--muted); border-bottom: 1px solid var(--border-strong);
+    position: sticky; top: 0; background: rgba(8, 12, 26, .95);
+  }
+  .result-table td { padding: 6px 8px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .badge.in { background: rgba(34,197,94,.18); color: #4ade80; }
+  .badge.out { background: rgba(56,189,248,.18); color: #7dd3fc; }
+  .badge.pending { background: rgba(245,158,11,.18); color: #fbbf24; }
+  .badge.approved { background: rgba(34,197,94,.18); color: #4ade80; }
+  .badge.rejected { background: rgba(239,68,68,.18); color: #fca5a5; }
+  .badge.admin { background: rgba(124,108,240,.2); color: #c4b5fd; }
+  .badge.user { background: rgba(148,163,184,.2); color: #cbd5e1; }
+  .empty { color: var(--muted); font-style: italic; padding: 8px 4px; }
+
+  /* ============ HERO (inicio) ============ */
+  .hero {
+    background: linear-gradient(135deg, rgba(124,108,240,.16), rgba(0,212,160,.08));
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 30px;
+    display: flex; gap: 26px; align-items: center; flex-wrap: wrap;
+  }
+  .hero .hero-txt { flex: 1; min-width: 260px; }
+  .hero h2 { font-size: 24px; font-weight: 800; line-height: 1.25; }
+  .hero p { color: var(--muted); margin-top: 8px; font-size: 14px; line-height: 1.6; }
+  .hero .chip { display: inline-flex; gap: 6px; align-items: center; margin-top: 14px; background: rgba(0,0,0,.25); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .quick button {
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    border-radius: 14px; padding: 16px 14px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+    font-size: 13px; font-weight: 700; transition: all .18s ease; text-align: left;
+  }
+  .quick button:hover { background: var(--card-hover); border-color: var(--accent); transform: translateY(-2px); }
+  .quick button svg { width: 20px; height: 20px; color: var(--accent); }
+  .quick button small { color: var(--muted); font-weight: 500; font-size: 11.5px; }
+
+  /* ============ MODAL CÁMARA ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(5, 8, 18, 0.85);
+    backdrop-filter: blur(6px); display: none; place-items: center;
+    z-index: 200; padding: 20px;
+  }
+  .modal-overlay.show { display: grid; }
+  .modal {
+    background: #131b33; border: 1px solid var(--border-strong);
+    border-radius: 18px; padding: 22px; width: 100%; max-width: 500px;
+    box-shadow: var(--shadow); animation: fade .2s ease;
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 4px; }
+  .modal .cam-hint { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .cam-wrap { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4/3; }
+  .cam-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam-frame {
+    position: absolute; inset: 12% 18%;
+    border: 2px dashed rgba(255, 255, 255, 0.55); border-radius: 50% 50% 42% 42%;
+    pointer-events: none;
+  }
+  .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .modal-actions .btn { width: auto; flex: 1; }
+  .thumb { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border-strong); flex-shrink: 0; display: none; }
+  .thumb.show { display: block; }
+  .file-row { display: flex; align-items: center; gap: 8px; }
+  .file-row .fake { flex: 1; }
+
+  /* ============ TOAST ============ */
+  #toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1a2440; color: var(--text); padding: 13px 20px; border-radius: 12px;
+    font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow);
+    border: 1px solid var(--border-strong); opacity: 0; transition: all .3s ease;
+    z-index: 100; max-width: 90vw; display: flex; gap: 10px; align-items: center;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { border-color: rgba(239,68,68,.6); background: #3a1a1a; }
+  #toast.ok { border-color: rgba(34,197,94,.6); background: #123322; }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  @media (max-width: 780px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px; }
+    .nav { flex-direction: row; flex-wrap: wrap; flex: none; }
+    .nav-title, .session-box { display: none; }
+    .nav button { width: auto; }
+    .brand { padding: 0 8px 0 4px; }
+    .main { padding: 20px 16px 70px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">C</div>
+      <div>
+        <h1>Checador</h1>
+        <small>Panel de Control</small>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-title">Módulos</div>
+      <button data-view="inicio" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1Z"/></svg>
+        Inicio
+      </button>
+      <button data-view="usuarios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Usuarios
+      </button>
+      <button data-view="asistencia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-6 4 3 4-7"/></svg>
+        Asistencia
+      </button>
+      <button data-view="horarios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Horarios
+      </button>
+      <button data-view="vacaciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="m10 16 1.5 1.5L15 14"/></svg>
+        Vacaciones
+      </button>
+    </nav>
+    <div class="session-box">
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Sin sesión</span></div>
+      <div class="email" id="statusEmail">Inicia sesión para operar</div>
+      <button class="logout" id="logoutBtn" style="display:none">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <!-- ===== INICIO ===== -->
+    <section class="view active" id="view-inicio">
+      <div class="view-head">
+        <h2>Bienvenido al panel del Checador</h2>
+        <p>Control de asistencia por reconocimiento facial. Usa la barra lateral para navegar entre módulos; cada acción se ejecuta con un botón y el resultado aparece aquí mismo.</p>
+      </div>
+      <div class="hero">
+        <div class="hero-txt">
+          <h2>Inicia sesión con tu rostro</h2>
+          <p>Reconoce tu cara con la cámara, entra sin contraseña y se registra tu asistencia automáticamente. También puedes iniciar con correo y contraseña.</p>
+          <div class="chip">Administrador: admin@checador.com / admin123</div>
+        </div>
+        <div style="flex:1; min-width:280px; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px;">
+          <div id="loginCard">
+            <div class="card">
+              <div class="card-top">
+                <div class="icon" style="background:linear-gradient(135deg,#5b4fd6,#7c6cf0)">→</div>
+                <h3>Iniciar con contraseña</h3>
+              </div>
+              <div class="fields">
+                <label class="full"><span>Correo</span><input type="email" id="loginEmail" placeholder="admin@checador.com"></label>
+                <label class="full"><span>Contraseña</span><input type="password" id="loginPass" placeholder="••••••••"></label>
+              </div>
+              <button class="btn purple" id="loginBtn">Iniciar sesión</button>
+              <div class="result" id="loginResult"></div>
+            </div>
+          </div>
+          <div id="faceLoginCard">
+            <div class="card">
+              <div class="card-top">
+                <div class="icon" style="background:linear-gradient(135deg,#15803d,#22c55e)">◉</div>
+                <div>
+                  <h3>Iniciar con rostro</h3>
+                  <p class="desc">Captura tu cara: se reconoce, entras y se registra tu asistencia (entrada o salida).</p>
+                </div>
+              </div>
+              <label><span>Foto del rostro <b>*</b></span>
+                <div class="file-row">
+                  <img class="thumb" id="faceLoginThumb" alt="">
+                  <input type="text" id="faceLoginFake" class="fake" placeholder="Captura tu rostro…" readonly onclick="document.getElementById('faceLoginFile').click()">
+                  <input type="file" id="faceLoginFile" accept="image/*" style="display:none">
+                  <button type="button" id="faceLoginPick" style="flex-shrink:0;padding:9px 12px;border-radius:10px;border:1px solid var(--border-strong);background:rgba(124,108,240,.16);color:#cfc8ff;font-weight:600;font-size:12.5px;cursor:pointer;">Elegir</button>
+                  <button type="button" id="faceLoginCam" title="Tomar foto con la cámara" style="flex-shrink:0;width:38px;padding:9px 0;border-radius:10px;border:1px solid var(--border-strong);background:rgba(56,189,248,.16);color:#7dd3fc;font-weight:600;font-size:14px;cursor:pointer;">📷</button>
+                </div>
+              </label>
+              <button class="btn green" id="faceLoginBtn">Reconocer y entrar</button>
+              <div class="result" id="faceLoginResult"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-head" style="margin-top:34px"><h3 style="font-size:18px">Accesos rápidos</h3></div>
+      <div class="quick">
+        <button data-go="usuarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/></svg>Usuarios<small>Registrar y administrar personal</small></button>
+        <button data-go="asistencia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-6 4 3 4-7"/></svg>Asistencia<small>Checar entrada y salida</small></button>
+        <button data-go="horarios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Horarios<small>Turnos y jornadas</small></button>
+        <button data-go="vacaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Vacaciones<small>Permisos y solicitudes</small></button>
+      </div>
+    </section>
+
+    <!-- ===== USUARIOS ===== -->
+    <section class="view" id="view-usuarios">
+      <div class="view-head">
+        <h2>Usuarios</h2>
+        <p>Registro, consulta y administración del personal. Subir una foto de rostro en el registro es obligatorio para el reconocimiento facial.</p>
+      </div>
+      <div class="grid" id="grid-usuarios"></div>
+    </section>
+
+    <!-- ===== ASISTENCIA ===== -->
+    <section class="view" id="view-asistencia">
+      <div class="view-head">
+        <h2>Asistencia</h2>
+        <p>Toma de asistencia por reconocimiento facial y consulta de historiales con filtros por semana, mes o año.</p>
+        <p class="hint" style="margin-top:6px">💡 Para usar la cámara desde el celular abre el panel con <b>https</b> (se genera un certificado con el script <code>run_phone.ps1</code>). En <code>localhost</code> o HTTPS la cámara funciona directo.</p>
+      </div>
+      <div class="grid" id="grid-asistencia"></div>
+    </section>
+
+    <!-- ===== HORARIOS ===== -->
+    <section class="view" id="view-horarios">
+      <div class="view-head">
+        <h2>Horarios</h2>
+        <p>Gestión de turnos por usuario o generales. Día de la semana: 0 = Lunes … 6 = Domingo.</p>
+      </div>
+      <div class="grid" id="grid-horarios"></div>
+    </section>
+
+    <!-- ===== VACACIONES ===== -->
+    <section class="view" id="view-vacaciones">
+      <div class="view-head">
+        <h2>Vacaciones y permisos</h2>
+        <p>Solicitudes de permiso, aprobación o rechazo por parte del administrador.</p>
+      </div>
+      <div class="grid" id="grid-vacaciones"></div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-overlay" id="camModal">
+  <div class="modal">
+    <h3>Capturar rostro</h3>
+    <p class="cam-hint">Coloca el rostro dentro del marco y presiona "Capturar".</p>
+    <div class="cam-wrap">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <div class="cam-frame"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn blue" id="camSwitch">Cambiar cámara</button>
+      <button class="btn green" id="camCapture">Capturar</button>
+      <button class="btn red" id="camCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   Configuración de tarjetas por módulo
+   ============================================================ */
+const F = (type, id, opts = {}) => ({ type, id, ...opts });
+
+const cards = {
+  usuarios: [
+    {
+      title: "Registrar usuario",
+      desc: "Captura VARIAS fotos del rostro desde distintos ángulos (recomendado 3+). Cuantas más fotos, mejor el reconocimiento.",
+      color: "green", icon: "✚", submit: "Registrar usuario",
+      action: async (vals, file) => {
+        const fd = new FormData();
+        fd.append("name", vals.name); fd.append("email", vals.email);
+        fd.append("password", vals.password); fd.append("role", vals.role);
+        if (vals.area) fd.append("area", vals.area);
+        (file.face_images || []).forEach(img => fd.append("face_images", img));
+        return request("/users/register", "POST", { form: fd });
+      },
+      fields: [
+        F("text", "name", { label: "Nombre completo", required: true }),
+        F("email", "email", { label: "Correo", required: true }),
+        F("password", "password", { label: "Contraseña", required: true }),
+        F("select", "role", { label: "Rol", options: [["user", "Usuario"], ["admin", "Administrador"]], required: true }),
+        F("text", "area", { label: "Área" }),
+        F("files", "face_images", { label: "Fotos de rostro", required: true, full: true }),
+      ],
+    },
+    {
+      title: "Listar usuarios",
+      desc: "Consulta el listado completo del personal registrado.",
+      color: "blue", icon: "≡", submit: "Listar usuarios",
+      action: () => request("/users/", "GET"),
+      fields: [],
+    },
+    {
+      title: "Mi perfil",
+      desc: "Ver los datos de la cuenta con la que estás autenticado.",
+      color: "blue", icon: "◎", submit: "Ver mi perfil",
+      action: () => request("/users/me", "GET"),
+      fields: [],
+    },
+    {
+      title: "Editar mi perfil",
+      desc: "Actualiza tu nombre, correo, área o contraseña. Solo envía lo que quieras cambiar.",
+      color: "amber", icon: "✎", submit: "Guardar cambios",
+      action: async (vals) => {
+        const body = {};
+        if (vals.name) body.name = vals.name;
+        if (vals.email) body.email = vals.email;
+        if (vals.area) body.area = vals.area;
+        if (vals.password) body.password = vals.password;
+        return request("/users/me", "PUT", { body });
+      },
+      fields: [
+        F("text", "name", { label: "Nombre" }),
+        F("email", "email", { label: "Correo" }),
+        F("text", "area", { label: "Área" }),
+        F("password", "password", { label: "Nueva contraseña" }),
+      ],
+    },
+    {
+      title: "Detalle de usuario",
+      desc: "Consulta la información de un usuario por su ID.",
+      color: "blue", icon: "?", submit: "Buscar usuario",
+      action: (vals) => request(`/users/${vals.user_id}`, "GET"),
+      fields: [F("number", "user_id", { label: "ID de usuario", required: true })],
+    },
+    {
+      title: "Editar usuario",
+      desc: "Modifica nombre, correo, rol, área o contraseña de un usuario.",
+      color: "amber", icon: "✎", submit: "Actualizar usuario",
+      action: async (vals) => {
+        const body = {};
+        if (vals.name) body.name = vals.name;
+        if (vals.email) body.email = vals.email;
+        if (vals.role) body.role = vals.role;
+        if (vals.area) body.area = vals.area;
+        if (vals.password) body.password = vals.password;
+        return request(`/users/${vals.user_id}`, "PUT", { body });
+      },
+      fields: [
+        F("number", "user_id", { label: "ID de usuario", required: true }),
+        F("text", "name", { label: "Nombre" }),
+        F("email", "email", { label: "Correo" }),
+        F("select", "role", { label: "Rol", options: [["", "— Sin cambio —"], ["user", "Usuario"], ["admin", "Administrador"]] }),
+        F("text", "area", { label: "Área" }),
+        F("password", "password", { label: "Nueva contraseña" }),
+      ],
+    },
+    {
+      title: "Actualizar rostro",
+      desc: "Reemplaza las fotos biométricas del usuario. Captura varias (3+) para mejor precisión.",
+      color: "purple", icon: "◉", submit: "Actualizar rostro",
+      action: (vals, file) => {
+        const fd = new FormData();
+        (file.face_images || []).forEach(img => fd.append("face_images", img));
+        return request(`/users/${vals.user_id}/face`, "POST", { form: fd });
+      },
+      fields: [
+        F("number", "user_id", { label: "ID de usuario", required: true }),
+        F("files", "face_images", { label: "Nuevas fotos de rostro", required: true, full: true }),
+      ],
+    },
+    {
+      title: "Eliminar usuario",
+      desc: "Elimina definitivamente al usuario y todos sus registros.",
+      color: "red", icon: "✕", submit: "Eliminar usuario",
+      confirm: true,
+      action: (vals) => request(`/users/${vals.user_id}`, "DELETE"),
+      fields: [F("number", "user_id", { label: "ID de usuario", required: true })],
+    },
+  ],
+
+  asistencia: [
+    {
+      title: "Tomar asistencia",
+      desc: "Abre la cámara, captura el rostro y el sistema registra la entrada o salida automáticamente.",
+      color: "green", icon: "◉", submit: "Registrar asistencia",
+      action: (vals, file) => {
+        const fd = new FormData();
+        fd.append("image", file.image);
+        return request("/attendance/check", "POST", { form: fd });
+      },
+      fields: [F("file", "image", { label: "Foto del rostro", required: true, full: true })],
+    },
+    {
+      title: "Asistencias del día",
+      desc: "Registros de entrada y salida de hoy (requiere administrador).",
+      color: "blue", icon: "☀", submit: "Ver asistencias de hoy",
+      action: () => request("/attendance/today", "GET"),
+      fields: [],
+    },
+    {
+      title: "Historial por usuario",
+      desc: "Registros de un usuario. Filtros opcionales por año, mes o semana.",
+      color: "blue", icon: "☰", submit: "Consultar historial",
+      action: (vals) => {
+        const q = new URLSearchParams();
+        if (vals.year) q.set("year", vals.year);
+        if (vals.month) q.set("month", vals.month);
+        if (vals.week) q.set("week", vals.week);
+        const s = q.toString();
+        return request(`/attendance/user/${vals.user_id}${s ? "?" + s : ""}`, "GET");
+      },
+      fields: [
+        F("number", "user_id", { label: "ID de usuario", required: true }),
+        F("number", "year", { label: "Año (ej. 2026)" }),
+        F("number", "month", { label: "Mes (1–12)" }),
+        F("number", "week", { label: "Semana (1–53)" }),
+      ],
+    },
+    {
+      title: "Historial por área",
+      desc: "Registros de todo un departamento (requiere administrador).",
+      color: "blue", icon: "▤", submit: "Consultar por área",
+      action: (vals) => {
+        const q = new URLSearchParams();
+        if (vals.year) q.set("year", vals.year);
+        if (vals.month) q.set("month", vals.month);
+        if (vals.week) q.set("week", vals.week);
+        const s = q.toString();
+        return request(`/attendance/area?area=${encodeURIComponent(vals.area)}${s ? "&" + s : ""}`, "GET");
+      },
+      fields: [
+        F("text", "area", { label: "Área (RH, TI, Ventas…)", required: true }),
+        F("number", "year", { label: "Año (ej. 2026)" }),
+        F("number", "month", { label: "Mes (1–12)" }),
+        F("number", "week", { label: "Semana (1–53)" }),
+      ],
+    },
+  ],
+
+  horarios: [
+    {
+      title: "Crear horario",
+      desc: "Nuevo turno. Deja ID de usuario vacío para aplicar a todos.",
+      color: "green", icon: "✚", submit: "Crear horario",
+      action: (vals) => request("/schedules/", "POST", {
+        body: {
+          user_id: vals.user_id ? parseInt(vals.user_id, 10) : null,
+          day_of_week: parseInt(vals.day_of_week, 10),
+          start_time: vals.start_time,
+          end_time: vals.end_time,
+        },
+      }),
+      fields: [
+        F("number", "user_id", { label: "ID de usuario (opcional)" }),
+        F("select", "day_of_week", { label: "Día de la semana", required: true,
+          options: [["0", "Lunes"], ["1", "Martes"], ["2", "Miércoles"], ["3", "Jueves"], ["4", "Viernes"], ["5", "Sábado"], ["6", "Domingo"]] }),
+        F("time", "start_time", { label: "Hora inicio", required: true }),
+        F("time", "end_time", { label: "Hora fin", required: true }),
+      ],
+    },
+    {
+      title: "Listar horarios",
+      desc: "Todos los turnos configurados en el sistema.",
+      color: "blue", icon: "≡", submit: "Listar horarios",
+      action: () => request("/schedules/", "GET"),
+      fields: [],
+    },
+    {
+      title: "Ver horario",
+      desc: "Consulta un turno específico por su ID.",
+      color: "blue", icon: "?", submit: "Buscar horario",
+      action: (vals) => request(`/schedules/${vals.schedule_id}`, "GET"),
+      fields: [F("number", "schedule_id", { label: "ID de horario", required: true })],
+    },
+    {
+      title: "Actualizar horario",
+      desc: "Modifica los campos de un turno. Solo envía lo que quieras cambiar.",
+      color: "amber", icon: "✎", submit: "Actualizar horario",
+      action: async (vals) => {
+        const body = {};
+        if (vals.user_id) body.user_id = parseInt(vals.user_id, 10);
+        if (vals.day_of_week !== "") body.day_of_week = parseInt(vals.day_of_week, 10);
+        if (vals.start_time) body.start_time = vals.start_time;
+        if (vals.end_time) body.end_time = vals.end_time;
+        return request(`/schedules/${vals.schedule_id}`, "PUT", { body });
+      },
+      fields: [
+        F("number", "schedule_id", { label: "ID de horario", required: true }),
+        F("number", "user_id", { label: "ID de usuario (opcional)" }),
+        F("select", "day_of_week", { label: "Día de la semana",
+          options: [["", "— Sin cambio —"], ["0", "Lunes"], ["1", "Martes"], ["2", "Miércoles"], ["3", "Jueves"], ["4", "Viernes"], ["5", "Sábado"], ["6", "Domingo"]] }),
+        F("time", "start_time", { label: "Hora inicio" }),
+        F("time", "end_time", { label: "Hora fin" }),
+      ],
+    },
+    {
+      title: "Eliminar horario",
+      desc: "Borra un turno definitivamente.",
+      color: "red", icon: "✕", submit: "Eliminar horario",
+      confirm: true,
+      action: (vals) => request(`/schedules/${vals.schedule_id}`, "DELETE"),
+      fields: [F("number", "schedule_id", { label: "ID de horario", required: true })],
+    },
+  ],
+
+  vacaciones: [
+    {
+      title: "Solicitar permiso",
+      desc: "Nueva solicitud de vacaciones para un usuario.",
+      color: "green", icon: "✚", submit: "Solicitar permiso",
+      action: (vals) => request("/vacations/", "POST", {
+        body: {
+          user_id: parseInt(vals.user_id, 10),
+          start_date: vals.start_date,
+          end_date: vals.end_date,
+          reason: vals.reason || null,
+        },
+      }),
+      fields: [
+        F("number", "user_id", { label: "ID de usuario", required: true }),
+        F("date", "start_date", { label: "Inicio", required: true }),
+        F("date", "end_date", { label: "Fin", required: true }),
+        F("text", "reason", { label: "Motivo", full: true }),
+      ],
+    },
+    {
+      title: "Listar todas",
+      desc: "Todas las solicitudes de permisos (requiere administrador).",
+      color: "blue", icon: "≡", submit: "Listar solicitudes",
+      action: () => request("/vacations/", "GET"),
+      fields: [],
+    },
+    {
+      title: "Historial por usuario",
+      desc: "Solicitudes de un usuario en particular.",
+      color: "blue", icon: "☰", submit: "Ver historial",
+      action: (vals) => request(`/vacations/user/${vals.user_id}`, "GET"),
+      fields: [F("number", "user_id", { label: "ID de usuario", required: true })],
+    },
+    {
+      title: "Aprobar / Rechazar",
+      desc: "Cambia el estado de una solicitud o edita sus fechas y motivo.",
+      color: "amber", icon: "✓", submit: "Aplicar cambios",
+      action: async (vals) => {
+        const body = {};
+        if (vals.status) body.status = vals.status;
+        if (vals.start_date) body.start_date = vals.start_date;
+        if (vals.end_date) body.end_date = vals.end_date;
+        if (vals.reason) body.reason = vals.reason;
+        return request(`/vacations/${vals.vacation_id}`, "PUT", { body });
+      },
+      fields: [
+        F("number", "vacation_id", { label: "ID de solicitud", required: true }),
+        F("select", "status", { label: "Estado",
+          options: [["", "— Sin cambio —"], ["pending", "Pendiente"], ["approved", "Aprobado"], ["rejected", "Rechazado"]] }),
+        F("date", "start_date", { label: "Inicio" }),
+        F("date", "end_date", { label: "Fin" }),
+        F("text", "reason", { label: "Motivo", full: true }),
+      ],
+    },
+    {
+      title: "Eliminar solicitud",
+      desc: "Borra un permiso definitivamente (requiere administrador).",
+      color: "red", icon: "✕", submit: "Eliminar solicitud",
+      confirm: true,
+      action: (vals) => request(`/vacations/${vals.vacation_id}`, "DELETE"),
+      fields: [F("number", "vacation_id", { label: "ID de solicitud", required: true })],
+    },
+  ],
+};
+
+/* ============================================================
+   Utilidades
+   ============================================================ */
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+function getToken() { return localStorage.getItem("checador_token") || ""; }
+function setToken(t) { localStorage.setItem("checador_token", t); updateAuthUI(); }
+function clearToken() { localStorage.removeItem("checador_token"); updateAuthUI(); }
+
+function toast(msg, kind = "ok") {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.className = "show " + kind;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = "", 3200);
+}
+
+async function request(path, method, { body, form } = {}) {
+  const headers = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = "Bearer " + token;
+  let payload;
+  if (form) {
+    payload = form;
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+  const res = await fetch(path, { method, headers, body: payload });
+  const text = await res.text();
+  let data = text;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { /* texto plano */ }
+  if (!res.ok) {
+    const msg = (data && data.detail) ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : ("Error " + res.status);
+    throw new Error(msg);
+  }
+  return data;
+}
+
+function fmtVal(v) {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "object") return '<span class="empty">' + JSON.stringify(v) + "</span>";
+  return String(v);
+}
+
+function badgeFor(v) {
+  if (v === "in" || v === "out") return `<span class="badge ${v}">${v === "in" ? "Entrada" : "Salida"}</span>`;
+  if (["pending", "approved", "rejected"].includes(v)) {
+    const t = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" }[v];
+    return `<span class="badge ${v}">${t}</span>`;
+  }
+  if (v === "admin" || v === "user") return `<span class="badge ${v}">${v === "admin" ? "Administrador" : "Usuario"}</span>`;
+  return null;
+}
+
+function renderResult(container, data, ok = true) {
+  container.className = "result show " + (ok ? "ok" : "err");
+  if (data === null || data === undefined) { container.textContent = "✔ Operación realizada correctamente."; return; }
+  if (Array.isArray(data)) {
+    if (data.length === 0) { container.innerHTML = '<span class="empty">Sin registros.</span>'; return; }
+    const keys = Object.keys(data[0]);
+    const special = { id: "ID", user_id: "Usuario", schedule_id: "Horario", vacation_id: "Permiso",
+      day_of_week: "Día", start_time: "Inicio", end_time: "Fin", timestamp: "Fecha", type: "Tipo",
+      name: "Nombre", email: "Correo", role: "Rol", area: "Área", face_image_path: "Rostro",
+      created_at: "Creado", start_date: "Inicio", end_date: "Fin", reason: "Motivo", status: "Estado" };
+    let html = "<table class='result-table'><thead><tr>";
+    keys.forEach(k => html += "<th>" + (special[k] || k) + "</th>");
+    html += "</tr></thead><tbody>";
+    data.forEach(row => {
+      html += "<tr>";
+      keys.forEach(k => {
+        const v = row[k];
+        const b = badgeFor(v);
+        html += "<td>" + (b || fmtVal(v)) + "</td>";
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    container.innerHTML = html;
+    return;
+  }
+  if (typeof data === "object") {
+    const b = badgeFor(data.type) || badgeFor(data.role) || badgeFor(data.status);
+    container.innerHTML = b
+      ? "<table class='result-table'><tbody>" + Object.entries(data).map(([k, v]) =>
+          "<tr><th>" + k + "</th><td>" + (badgeFor(v) || fmtVal(v)) + "</td></tr>").join("") + "</tbody></table>"
+      : "<pre class='json'>" + JSON.stringify(data, null, 2) + "</pre>";
+    return;
+  }
+  container.textContent = data;
+}
+
+/* ============================================================
+   Construcción de tarjetas
+   ============================================================ */
+function buildCard(cfg) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const top = document.createElement("div");
+  top.className = "card-top";
+  const icon = document.createElement("div");
+  icon.className = "icon";
+  const colors = { green: "linear-gradient(135deg,#15803d,#22c55e)", blue: "linear-gradient(135deg,#0369a1,#38bdf8)",
+    amber: "linear-gradient(135deg,#b45309,#f59e0b)", purple: "linear-gradient(135deg,#5b4fd6,#7c6cf0)", red: "linear-gradient(135deg,#b91c1c,#ef4444)" };
+  icon.style.background = colors[cfg.color];
+  icon.textContent = cfg.icon;
+  const titleWrap = document.createElement("div");
+  const h3 = document.createElement("h3"); h3.textContent = cfg.title;
+  const p = document.createElement("p"); p.className = "desc"; p.textContent = cfg.desc;
+  titleWrap.append(h3, p);
+  top.append(icon, titleWrap);
+  card.appendChild(top);
+
+  const values = {};
+  const files = {};
+
+  if (cfg.fields.length) {
+    const fields = document.createElement("div");
+    fields.className = "fields";
+    cfg.fields.forEach(fd => {
+      const label = document.createElement("label");
+      if (fd.full) label.className = "full";
+      const span = document.createElement("span");
+      span.innerHTML = fd.label + (fd.required ? " <b>*</b>" : "");
+      label.appendChild(span);
+      let input;
+      if (fd.type === "select") {
+        input = document.createElement("select");
+        fd.options.forEach(([val, text]) => {
+          const o = document.createElement("option");
+          o.value = val; o.textContent = text;
+          input.appendChild(o);
+        });
+      } else {
+        input = document.createElement("input");
+        input.type = fd.type;
+        if (fd.required && fd.type !== "file") input.required = true;
+      }
+      input.id = "f_" + Math.random().toString(36).slice(2, 9);
+      if (fd.type === "file") {
+        input.style.display = "none";
+        const fake = document.createElement("input");
+        fake.type = "text"; fake.placeholder = "Seleccionar archivo…"; fake.readOnly = true;
+        fake.className = "fake";
+        fake.addEventListener("click", () => input.click());
+        const thumb = document.createElement("img");
+        thumb.className = "thumb";
+        input.addEventListener("change", () => {
+          files[fd.id] = input.files[0];
+          fake.value = input.files[0] ? input.files[0].name : "";
+          if (input.files[0]) {
+            if (thumb._url) URL.revokeObjectURL(thumb._url);
+            thumb._url = URL.createObjectURL(input.files[0]);
+            thumb.src = thumb._url;
+            thumb.classList.add("show");
+          } else {
+            thumb.classList.remove("show");
+          }
+        });
+        const wrap = document.createElement("div");
+        wrap.className = "file-row";
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:8px;flex:1;";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.style.cssText = "flex-shrink:0;padding:9px 12px;border-radius:10px;border:1px solid var(--border-strong);background:rgba(124,108,240,.16);color:#cfc8ff;font-weight:600;font-size:12.5px;cursor:pointer;";
+        btn.textContent = "Elegir";
+        btn.addEventListener("click", () => input.click());
+        const camBtn = document.createElement("button");
+        camBtn.type = "button";
+        camBtn.innerHTML = '📷';
+        camBtn.title = "Tomar foto con la cámara";
+        camBtn.style.cssText = "flex-shrink:0;width:38px;padding:9px 0;border-radius:10px;border:1px solid var(--border-strong);background:rgba(56,189,248,.16);color:#7dd3fc;font-weight:600;font-size:14px;cursor:pointer;";
+        camBtn.addEventListener("click", () => openCamera(input, fake, thumb));
+        row.append(fake, btn, camBtn);
+        wrap.append(thumb, row);
+        label.appendChild(wrap);
+      } else if (fd.type === "files") {
+        const filesArr = [];
+        files[fd.id] = filesArr;
+        const hidden = document.createElement("input");
+        hidden.type = "file"; hidden.accept = "image/*"; hidden.style.display = "none";
+        const thumbs = document.createElement("div");
+        thumbs.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+        function updateThumbs() {
+          thumbs.innerHTML = "";
+          filesArr.forEach((f, i) => {
+            const img = document.createElement("img");
+            img.className = "thumb"; img.style.display = "block"; img.style.width = "46px"; img.style.height = "46px";
+            img.src = URL.createObjectURL(f);
+            img.title = f.name;
+            const wrap = document.createElement("span");
+            wrap.style.cssText = "position:relative;display:inline-block;";
+            const x = document.createElement("button");
+            x.type = "button"; x.textContent = "✕";
+            x.style.cssText = "position:absolute;top:-7px;right:-7px;width:19px;height:19px;border-radius:50%;border:none;background:#ef4444;color:#fff;font-size:11px;line-height:1;cursor:pointer;font-weight:700;";
+            x.addEventListener("click", () => { filesArr.splice(i, 1); updateThumbs(); });
+            wrap.append(img, x);
+            thumbs.appendChild(wrap);
+          });
+          if (filesArr.length) {
+            const n = document.createElement("span");
+            n.className = "hint";
+            n.textContent = filesArr.length + " foto" + (filesArr.length > 1 ? "s" : "");
+            thumbs.appendChild(n);
+          }
+        }
+        hidden.addEventListener("change", () => {
+          if (hidden.files[0]) { filesArr.push(hidden.files[0]); updateThumbs(); hidden.value = ""; }
+        });
+        const camBtn = document.createElement("button");
+        camBtn.type = "button";
+        camBtn.innerHTML = "📷 Tomar foto";
+        camBtn.style.cssText = "flex:1;padding:9px 10px;border-radius:10px;border:1px solid var(--border-strong);background:rgba(56,189,248,.16);color:#7dd3fc;font-weight:700;font-size:12.5px;cursor:pointer;";
+        camBtn.addEventListener("click", () => openCamera(hidden, file => { filesArr.push(file); updateThumbs(); }));
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:8px;";
+        row.append(camBtn, thumbs);
+        label.appendChild(row);
+      } else {
+        label.appendChild(input);
+      }
+      fields.appendChild(label);
+    });
+    card.appendChild(fields);
+  }
+
+  const btn = document.createElement("button");
+  btn.className = "btn " + cfg.color;
+  btn.textContent = cfg.submit;
+  btn.addEventListener("click", async () => {
+    const all = card.querySelectorAll("input, select");
+    let missing = null;
+    all.forEach(el => { if (el.required && !el.value.trim()) missing = el; });
+    if (missing) { toast("Completa los campos obligatorios (*)", "err"); return; }
+    if (cfg.fields.some(f => {
+      if (!f.required) return false;
+      if (f.type === "files") return !files[f.id] || files[f.id].length === 0;
+      if (f.type === "file") return !files[f.id];
+      return false;
+    })) {
+      toast("Selecciona o captura los archivos requeridos (*)", "err"); return;
+    }
+    if (cfg.confirm && !confirm("¿Seguro que quieres continuar? Esta acción no se puede deshacer.")) return;
+
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = "Procesando…";
+    cfg.fields.forEach(fd => { if (fd.type !== "file") values[fd.id] = card.querySelector("#" + fd.id).value.trim(); });
+    try {
+      const data = await cfg.action(values, files);
+      renderResult(resultEl, data, true);
+      toast("¡Listo! Operación exitosa", "ok");
+    } catch (e) {
+      renderResult(resultEl, e.message, false);
+      toast(e.message, "err");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  });
+  card.appendChild(btn);
+
+  const resultEl = document.createElement("div");
+  resultEl.className = "result";
+  card.appendChild(resultEl);
+
+  return card;
+}
+
+/* ============================================================
+   Cámara (captura de rostro)
+   ============================================================ */
+let camStream = null;
+let camInput = null;
+let camOnCapture = null;
+let camFacing = "environment";
+
+async function openCamera(inputEl, onCapture) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast("Tu navegador no permite acceso a la cámara. Abre la página con https o en localhost.", "err");
+    return;
+  }
+  camInput = inputEl;
+  camOnCapture = onCapture || null;
+  camFacing = "environment";
+  await startCamStream();
+}
+
+async function startCamStream() {
+  stopCamStream();
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: camFacing, width: { ideal: 1280 } },
+      audio: false,
+    });
+    const video = $("#camVideo");
+    video.srcObject = camStream;
+    video.muted = true;
+    $("#camModal").classList.add("show");
+  } catch (e) {
+    toast("No se pudo abrir la cámara: " + (e.message || e.name), "err");
+  }
+}
+
+function stopCamStream() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  $("#camVideo").srcObject = null;
+}
+
+function closeCamModal() {
+  stopCamStream();
+  $("#camModal").classList.remove("show");
+}
+
+function captureCam() {
+  const video = $("#camVideo");
+  if (!video.videoWidth) { toast("La cámara aún no está lista", "err"); return; }
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    const file = new File([blob], "rostro.jpg", { type: "image/jpeg" });
+    if (camOnCapture) {
+      camOnCapture(file);
+    } else {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      const input = camInput;
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change"));
+    }
+    closeCamModal();
+    toast("Foto capturada. Presiona el botón de la acción para enviarla.", "ok");
+  }, "image/jpeg", 0.92);
+}
+
+$("#camCapture").addEventListener("click", captureCam);
+$("#camCancel").addEventListener("click", closeCamModal);
+$("#camSwitch").addEventListener("click", () => {
+  camFacing = camFacing === "environment" ? "user" : "environment";
+  startCamStream();
+});
+$("#camModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeCamModal(); });
+
+/* ============================================================
+   Navegación y sesión
+   ============================================================ */
+const $ = (s) => document.querySelector(s);
+
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  $("#view-" + name).classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function updateAuthUI() {
+  const token = getToken();
+  const email = localStorage.getItem("checador_email");
+  $("#statusDot").classList.toggle("on", !!token);
+  $("#statusText").textContent = token ? "Sesión activa" : "Sin sesión";
+  $("#statusEmail").textContent = token && email ? email : (token ? "Autenticado" : "Inicia sesión para operar");
+  $("#logoutBtn").style.display = token ? "block" : "none";
+  const showLogin = token ? "none" : "";
+  $("#loginCard").style.display = showLogin;
+  $("#faceLoginCard").style.display = showLogin;
+}
+
+document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showView(b.dataset.go)));
+
+$("#logoutBtn").addEventListener("click", () => { clearToken(); toast("Sesión cerrada", "ok"); showView("inicio"); });
+
+$("#loginBtn").addEventListener("click", async () => {
+  const btn = $("#loginBtn");
+  const email = $("#loginEmail").value.trim();
+  const pass = $("#loginPass").value;
+  if (!email || !pass) { toast("Ingresa tu correo y contraseña", "err"); return; }
+  btn.disabled = true; btn.textContent = "Iniciando…";
+  const fd = new FormData();
+  fd.append("username", email); fd.append("password", pass);
+  try {
+    const data = await request("/token", "POST", { form: fd });
+    setToken(data.access_token);
+    localStorage.setItem("checador_email", email);
+    renderResult($("#loginResult"), data, true);
+    toast("¡Bienvenido, sesión iniciada!", "ok");
+  } catch (e) {
+    renderResult($("#loginResult"), e.message, false);
+    toast(e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Iniciar sesión";
+  }
+});
+$("#loginPass").addEventListener("keydown", e => { if (e.key === "Enter") $("#loginBtn").click(); });
+
+/* --- Iniciar sesión con rostro --- */
+$("#faceLoginPick").addEventListener("click", () => $("#faceLoginFile").click());
+$("#faceLoginCam").addEventListener("click", () => openCamera($("#faceLoginFile")));
+$("#faceLoginFile").addEventListener("change", () => {
+  const f = $("#faceLoginFile").files[0];
+  if (!f) return;
+  const thumb = $("#faceLoginThumb");
+  if (thumb._url) URL.revokeObjectURL(thumb._url);
+  thumb._url = URL.createObjectURL(f);
+  thumb.src = thumb._url;
+  thumb.classList.add("show");
+  $("#faceLoginFake").value = f.name;
+});
+$("#faceLoginBtn").addEventListener("click", async () => {
+  const file = $("#faceLoginFile").files[0];
+  if (!file) { toast("Captura tu rostro primero", "err"); return; }
+  const btn = $("#faceLoginBtn");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Reconociendo…";
+  const fd = new FormData();
+  fd.append("image", file);
+  try {
+    const data = await request("/auth/face-login", "POST", { form: fd });
+    setToken(data.access_token);
+    localStorage.setItem("checador_email", data.user.email);
+    const att = data.attendance || {};
+    renderResult($("#faceLoginResult"), {
+      "Usuario": data.user.name,
+      "Asistencia": att.type === "in" ? "Entrada registrada ✓" : "Salida registrada ✓",
+      "Hora": (att.timestamp || "").replace("T", " ").slice(0, 19),
+    }, true);
+    toast("¡Bienvenido, " + data.user.name + "! Asistencia registrada.", "ok");
+  } catch (e) {
+    renderResult($("#faceLoginResult"), e.message, false);
+    toast(e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
+/* ============================================================
+   Render inicial
+   ============================================================ */
+Object.entries(cards).forEach(([view, list]) => {
+  const grid = $("#grid-" + view);
+  list.forEach(cfg => grid.appendChild(buildCard(cfg)));
+});
+
+updateAuthUI();
+</script>
+</body>
+</html>
